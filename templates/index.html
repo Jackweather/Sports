@@ -48,6 +48,15 @@
             max-width: 700px;
             line-height: 1.4;
         }
+        #playerLineDisplay {
+            text-align: center;
+            font-size: 1rem;
+            color: #7dd3fc;
+            margin: -10px 0 22px 0;
+            max-width: 760px;
+            line-height: 1.4;
+            min-height: 1.4em;
+        }
         #sportIndicator {
             color: #ffd600;
             border: 1px solid #ffd600;
@@ -215,6 +224,7 @@
         <h2 id="playerHeading" style="margin-top:32px; color:#ffd600; font-size:2rem; letter-spacing:1px;">Game Log & Insights</h2>
         <div id="sportIndicator">MLB</div>
         <div id="currentYankeesGame"></div>
+        <div id="playerLineDisplay"></div>
         <div class="controls-row sport-switch-row">
             <button id="mlbSportBtn" class="active">MLB</button>
             <button id="nbaSportBtn">NBA</button>
@@ -295,6 +305,7 @@
             document.getElementById('nbaSportBtn').classList.toggle('active', currentSport === 'nba');
             statSelect.onchange = function() {
                 renderJudgeBarChart();
+                fetchPlayerLine();
             };
         }
         function populatePlayerSelect() {
@@ -545,6 +556,44 @@
             }
         }
 
+        async function fetchPlayerLine() {
+            const el = document.getElementById('playerLineDisplay');
+            const stat = document.getElementById('statSelect') ? document.getElementById('statSelect').value : '';
+            const statOption = (sportConfigs[currentSport] || sportConfigs.mlb).stats.find(option => option.value === stat);
+            const thresholdInput = document.getElementById('thresholdInput');
+            const thresholdValue = document.getElementById('thresholdValue');
+            if (!currentPlayerId || !stat) {
+                el.textContent = '';
+                return;
+            }
+
+            el.textContent = 'Loading line...';
+            try {
+                const res = await fetch(`/api/player_line/${currentPlayerId}/${stat}`);
+                const data = await res.json();
+                if (!res.ok || data.error || !data.line) {
+                    el.textContent = data.error || 'No line available for selected stat.';
+                    return;
+                }
+
+                const label = statOption ? statOption.label : stat;
+                const overPrice = data.line.over_price ?? '--';
+                const underPrice = data.line.under_price ?? '--';
+                const linePoint = Number(data.line.point);
+                if (!Number.isNaN(linePoint) && thresholdInput && thresholdValue) {
+                    if (linePoint > Number(thresholdInput.max)) {
+                        thresholdInput.max = String(Math.ceil(linePoint));
+                    }
+                    thresholdInput.value = String(linePoint);
+                    thresholdValue.textContent = linePoint.toFixed(1);
+                    renderJudgeBarChart();
+                }
+                el.textContent = `${label} line: ${data.line.point} at ${data.line.bookmaker} | O ${overPrice} / U ${underPrice}`;
+            } catch {
+                el.textContent = 'Unable to load player line.';
+            }
+        }
+
         // --- Player selection logic ---
         let allPlayers = [];
         let currentPlayerId = null;
@@ -600,6 +649,7 @@
             populateOpponentSelect();
             renderJudgeBarChart();
             fetchCurrentGame();
+            fetchPlayerLine();
         }
 
         // Override renderJudgeBarChart to use playerName in heading if needed
