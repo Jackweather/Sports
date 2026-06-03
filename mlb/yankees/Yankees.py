@@ -60,7 +60,8 @@ PLAYERS = [
 ]
 BASE_URL = "https://statsapi.mlb.com/api/v1/people/{}/stats?stats=gameLog&group=hitting&season={}"
 TEAMS_URL = "https://statsapi.mlb.com/api/v1/teams?sportId=1"
-OUTPUT_DIR = os.path.join("mlb", "yankees")
+BASE_DIR = '/var/data'
+OUTPUT_DIR = os.path.join(BASE_DIR, 'mlb', 'yankees')
 
 TEAM_ABBREVIATIONS = None
 
