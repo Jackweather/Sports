@@ -15,6 +15,7 @@ MLB_TEAMS_PATH = os.path.join(APP_DIR, 'mlb_teams.json')
 NBA_TEAMS_PATH = os.path.join(APP_DIR, 'nba_teams.json')
 YANKEES_SCRIPT = os.path.join(APP_DIR, 'mlb', 'yankees', 'Yankees.py')
 BRUNSON_SCRIPT = os.path.join(APP_DIR, 'nba', 'knicks', 'JalenBrunson.py')
+RUN_TASK_LOCK = threading.Lock()
 
 
 def player_file(sport, filename):
@@ -77,6 +78,30 @@ PLAYERS = [
         'name': 'Jalen Brunson',
         'sport': 'nba',
         'file': player_file('nba', 'jalen_brunson.json')
+    },
+    {
+        'id': 'karl_anthony_towns',
+        'name': 'Karl-Anthony Towns',
+        'sport': 'nba',
+        'file': player_file('nba', 'karl_anthony_towns.json')
+    },
+    {
+        'id': 'mikal_bridges',
+        'name': 'Mikal Bridges',
+        'sport': 'nba',
+        'file': player_file('nba', 'mikal_bridges.json')
+    },
+    {
+        'id': 'og_anunoby',
+        'name': 'OG Anunoby',
+        'sport': 'nba',
+        'file': player_file('nba', 'og_anunoby.json')
+    },
+    {
+        'id': 'josh_hart',
+        'name': 'Josh Hart',
+        'sport': 'nba',
+        'file': player_file('nba', 'josh_hart.json')
     }
 ]
 
@@ -135,29 +160,35 @@ def resolve_opponent_abbreviation(player_id, opponent_name):
 @app.route('/run-task1')
 def run_task1():
     def run_all_scripts():
-        print('Flask is running as user:', getpass.getuser())
-        scripts = [
-            ("/opt/render/project/src/mlb/yankees/Yankees.py", "/opt/render/project/src/mlb/yankees/"),
-            ("/opt/render/project/src/nba/knicks/Knicks.py", "/opt/render/project/src/nba/knicks/")
-        ]
-        for script, cwd in scripts:
-            try:
-                result = subprocess.run(
-                    ['python', script],
-                    check=True,
-                    cwd=cwd,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    text=True
-                )
-                print(f"{os.path.basename(script)} ran successfully!")
-                print('STDOUT:', result.stdout)
-                print('STDERR:', result.stderr)
-            except subprocess.CalledProcessError as e:
-                error_trace = traceback.format_exc()
-                print(f"Error running {os.path.basename(script)}:\n{error_trace}")
-                print('STDOUT:', e.stdout)
-                print('STDERR:', e.stderr)
+        try:
+            print('Flask is running as user:', getpass.getuser())
+            scripts = [
+                ("/opt/render/project/src/mlb/yankees/Yankees.py", "/opt/render/project/src/mlb/yankees/"),
+                ("/opt/render/project/src/nba/knicks/Knicks.py", "/opt/render/project/src/nba/knicks/")
+            ]
+            for script, cwd in scripts:
+                try:
+                    result = subprocess.run(
+                        ['python', script],
+                        check=True,
+                        cwd=cwd,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        text=True
+                    )
+                    print(f"{os.path.basename(script)} ran successfully!")
+                    print('STDOUT:', result.stdout)
+                    print('STDERR:', result.stderr)
+                except subprocess.CalledProcessError as e:
+                    error_trace = traceback.format_exc()
+                    print(f"Error running {os.path.basename(script)}:\n{error_trace}")
+                    print('STDOUT:', e.stdout)
+                    print('STDERR:', e.stderr)
+        finally:
+            RUN_TASK_LOCK.release()
+
+    if not RUN_TASK_LOCK.acquire(blocking=False):
+        return 'Task is already running.', 409
 
     threading.Thread(target=run_all_scripts, daemon=True).start()
     return 'Task started in background! Check logs folder for output.', 200
