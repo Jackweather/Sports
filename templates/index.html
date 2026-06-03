@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Judge Betting Insights & Game Log</title>
+    <!-- Removed broken betting_style.css link -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation/dist/chartjs-plugin-annotation.min.js"></script>
+</head>
+<body>
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            background: #181c23;
+            color: #f5f6fa;
+        }
+        body {
+            min-height: 100vh;
+            width: 100vw;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            justify-content: flex-start;
+        }
+        .main-full {
+            width: 100vw;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 0;
+        }
+        #currentYankeesGame {
+            text-align: center;
+            font-size: 1.25rem;
+            color: #00e676;
+            margin: 32px 0 24px 0;
+        }
+        .controls-row, .stat-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 18px;
+            margin-bottom: 18px;
+        }
+        .chart-area {
+            flex: 1 1 auto;
+            width: 100vw;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #judgeBarChart {
+            width: 90vw !important;
+            max-width: 1200px;
+            height: 60vh !important;
+            background: #232a34;
+            border-radius: 8px;
+            padding: 0;
+        }
+        button, select, label {
+            font-size: 1rem;
+        }
+        button {
+            padding: 7px 18px;
+            border-radius: 6px;
+            border: none;
+            background: #232a34;
+            color: #00e676;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button.active, button:active {
+            background: #232a34;
+            color: #00e676;
+        }
+        select {
+            background: #232a34;
+            color: #f5f6fa;
+            border-radius: 6px;
+            border: 1px solid #2e3743;
+            padding: 4px 10px;
+        }
+    </style>
+    <div class="main-full">
+        <h2 id="playerHeading" style="margin-top:32px; color:#ffd600; font-size:2rem; letter-spacing:1px;">Game Log & Insights</h2>
+        <div id="currentYankeesGame"></div>
+        <div class="controls-row">
+            <label for="playerSelect">Player:</label>
+            <select id="playerSelect"></select>
+            <label for="opponentSelect">Opponent:</label>
+            <select id="opponentSelect"></select>
+            <label for="statSelect">Stat:</label>
+            <select id="statSelect">
+                <option value="H">Hits</option>
+                <option value="HR">Home Runs</option>
+                <option value="RBI">RBI</option>
+                <option value="SB">Stolen Bases</option>
+                <option value="BB">Walks</option>
+            </select>
+        </div>
+        <div class="controls-row">
+            <button id="allBtn" class="active">All</button>
+            <button id="last5Btn">Last 5</button>
+            <button id="last10Btn">Last 10</button>
+            <button id="hh5Btn">Last 5 vs Opponent</button>
+            <button id="hh10Btn">Last 10 vs Opponent</button>
+        </div>
+        <div style="width:100vw; display:flex; flex-direction:column; align-items:center; margin-bottom:10px;">
+            <div style="display:flex; align-items:center; gap:12px; margin-bottom:8px;">
+                <label for="thresholdInput" style="color:#ffd600; font-size:1.05rem;">Threshold:</label>
+                <input type="range" id="thresholdInput" min="0" max="10" step="0.5" value="1" style="width:180px;">
+                <span id="thresholdValue" style="color:#ffd600; font-size:1.05rem;">1</span>
+            </div>
+        </div>
+        <div class="chart-area">
+            <canvas id="judgeBarChart"></canvas>
+        </div>
+    </div>
+    <script>
+        // Register annotation plugin ONCE at script load
+        if (window.Chart && window['chartjs-plugin-annotation'] && !window.__annotationRegistered) {
+            window.Chart.register(window['chartjs-plugin-annotation']);
+            window.__annotationRegistered = true;
+        }
+        let allGames = [];
+        let currentOpponent = '';
+        let mlbTeams = [];
+        async function fetchGames() {
+            const res = await fetch('/api/games');
+            allGames = await res.json();
+            await fetchMlbTeams();
+            await autoSelectOpponent();
+            populateOpponentSelect();
+            // Register annotation plugin for Chart.js v4+ (CDN global is window['chartjs-plugin-annotation'])
+            if (window.Chart && window['chartjs-plugin-annotation'] && !window.__annotationRegistered) {
+                window.Chart.register(window['chartjs-plugin-annotation']);
+                window.__annotationRegistered = true;
+            }
+            renderJudgeBarChart();
+        }
+        // Track current filter for chart
+        let currentChartFilter = 'all';
+        function getOpponentCode(opp) {
+            return String(opp || '').replace(/^(@|vs)\s*/, '');
+        }
+        function getFilteredGamesForChart() {
+            const selectedOpponent = getOpponentCode(currentOpponent);
+            switch (currentChartFilter) {
+                case 'all':
+                    return allGames;
+                case 'last5':
+                    return allGames.slice(0, 5);
+                case 'last10':
+                    return allGames.slice(0, 10);
+                case 'hh5':
+                    return allGames.filter(g => getOpponentCode(g.OPP) === selectedOpponent).slice(0, 5);
+                case 'hh10':
+                    return allGames.filter(g => getOpponentCode(g.OPP) === selectedOpponent).slice(0, 10);
+                default:
+                    return allGames;
+            }
+        }
+        function renderJudgeBarChart() {
+            // Annotation plugin is already registered at script load
+            const stat = document.getElementById('statSelect') ? document.getElementById('statSelect').value : 'H';
+            const statLabels = {
+                H: 'Hits', HR: 'Home Runs', RBI: 'RBI', SB: 'Stolen Bases', BB: 'Walks'
+            };
+            let games = getFilteredGamesForChart().slice(0, 10).reverse();
+            const labels = games.map(g => g.Date);
+            const dataArr = games.map(g => parseInt(g[stat], 10) || 0);
+            // Calculate average for the stat (ignore NaN/undefined)
+            const validVals = dataArr.filter(v => typeof v === 'number' && !isNaN(v));
+            const avg = validVals.length > 0 ? (validVals.reduce((a, b) => a + b, 0) / validVals.length) : 0;
+            // Get threshold value
+            const threshold = parseFloat(document.getElementById('thresholdInput')?.value || 1);
+            // Set bar colors based on threshold
+            const barColors = dataArr.map(v => (v >= threshold ? '#00e676' : '#ff1744'));
+            const zeroIndicatorData = dataArr.map(v => (v === 0 ? 0 : null));
+            const ctx = document.getElementById('judgeBarChart').getContext('2d');
+            if (window.judgeBarChart && typeof window.judgeBarChart.destroy === 'function') window.judgeBarChart.destroy();
+            window.judgeBarChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [
+                        { label: statLabels[stat], data: dataArr, backgroundColor: barColors },
+                        {
+                            type: 'line',
+                            label: 'Zero indicator',
+                            data: zeroIndicatorData,
+                            showLine: false,
+                            pointRadius: 5,
+                            pointHoverRadius: 6,
+                            pointBackgroundColor: '#ff1744',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 1,
+                            clip: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#f5f6fa',
+                                filter: function(legendItem) {
+                                    return legendItem.text !== 'Zero indicator';
+                                }
+                            }
+                        },
+                        annotation: {
+                            annotations: {
+                                thresholdLine: {
+                                    type: 'line',
+                                    yMin: threshold,
+                                    yMax: threshold,
+                                    borderColor: '#ffd600',
+                                    borderWidth: 2,
+                                    borderDash: [4,2],
+                                    label: {
+                                        display: true,
+                                        content: `Threshold (${threshold})`,
+                                        color: '#ffd600',
+                                        position: 'end'
+                                    }
+                                },
+                                avgLine: {
+                                    type: 'line',
+                                    yMin: avg,
+                                    yMax: avg,
+                                    borderColor: '#2979ff',
+                                    borderWidth: 2,
+                                    borderDash: [6,3],
+                                    label: {
+                                        display: true,
+                                        content: `Avg (${avg.toFixed(2)})`,
+                                        color: '#2979ff',
+                                        position: 'start'
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { ticks: { color: '#b0bec5' }, grid: { color: '#2e3743' } },
+                        y: { ticks: { color: '#b0bec5' }, grid: { color: '#2e3743' } }
+                    }
+                }
+            });
+        }
+
+
+        // Threshold slider event
+        const thresholdInput = document.getElementById('thresholdInput');
+        const thresholdValue = document.getElementById('thresholdValue');
+        if (thresholdInput && thresholdValue) {
+            thresholdInput.oninput = function() {
+                // Always show value with one decimal, but .0 as .0
+                thresholdValue.textContent = parseFloat(this.value).toFixed(1);
+                renderJudgeBarChart();
+            };
+            // Set initial display value
+            thresholdValue.textContent = parseFloat(thresholdInput.value).toFixed(1);
+        }
+
+
+
+        async function fetchMlbTeams() {
+            try {
+                const res = await fetch('/static/mlb_teams.json');
+                mlbTeams = await res.json();
+            } catch {
+                mlbTeams = [];
+            }
+        }
+
+        async function autoSelectOpponent() {
+            try {
+                const res = await fetch(`/api/next_yankees_game/${currentPlayerId}`);
+                const data = await res.json();
+                if (data.opponent_abbr) {
+                    if (allGames.some(g => getOpponentCode(g.OPP) === data.opponent_abbr)) {
+                        currentOpponent = data.opponent_abbr;
+                    }
+                } else if (data.opponent) {
+                    // fallback: try to match by name
+                    let abbr = '';
+                    if (mlbTeams.length > 0) {
+                        const opp = mlbTeams.find(t => data.opponent.trim().endsWith(t.name.trim()));
+                        if (opp) abbr = opp.abbreviation;
+                    }
+                    if (abbr) {
+                        if (allGames.some(g => getOpponentCode(g.OPP) === abbr)) {
+                            currentOpponent = abbr;
+                        }
+                    } else {
+                        // fallback: try to match by partial name
+                        const opp2 = allGames.find(g => data.opponent && data.opponent.includes(g.OPP));
+                        if (opp2) currentOpponent = getOpponentCode(opp2.OPP);
+                    }
+                }
+            } catch {}
+        }
+
+        function populateOpponentSelect() {
+            const select = document.getElementById('opponentSelect');
+            const opps = Array.from(new Set(allGames.map(g => getOpponentCode(g.OPP)))).sort();
+            select.innerHTML = opps.map(o => `<option value="${o}">${o}</option>`).join('');
+            // If currentOpponent is set (from autoSelectOpponent), select it
+            currentOpponent = getOpponentCode(currentOpponent);
+            if (currentOpponent && opps.includes(currentOpponent)) {
+                select.value = currentOpponent;
+            } else {
+                currentOpponent = select.value;
+            }
+            select.onchange = function() {
+                currentOpponent = getOpponentCode(this.value);
+                renderJudgeBarChart();
+            };
+            // Stat selector event
+            const statSelect = document.getElementById('statSelect');
+            if (statSelect) {
+                statSelect.onchange = function() {
+                    renderJudgeBarChart();
+                };
+            }
+        }
+        document.getElementById('allBtn').onclick = function() {
+            setActive(this); currentChartFilter = 'all'; renderJudgeBarChart();
+        };
+        document.getElementById('last5Btn').onclick = function() {
+            setActive(this); currentChartFilter = 'last5'; renderJudgeBarChart();
+        };
+        document.getElementById('last10Btn').onclick = function() {
+            setActive(this); currentChartFilter = 'last10'; renderJudgeBarChart();
+        };
+        document.getElementById('hh5Btn').onclick = function() {
+            setActive(this); currentChartFilter = 'hh5'; renderJudgeBarChart();
+        };
+        document.getElementById('hh10Btn').onclick = function() {
+            setActive(this); currentChartFilter = 'hh10'; renderJudgeBarChart();
+        };
+        function setActive(btn) {
+            document.querySelectorAll('.controls-row button').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+        async function fetchCurrentYankeesGame() {
+            const el = document.getElementById('currentYankeesGame');
+            try {
+                // Try to get current game first
+                let res = await fetch(`/api/current_yankees_game/${currentPlayerId}`);
+                let data = await res.json();
+                if (!data.error && data.opponent) {
+                    el.textContent = `${data.opponent} (${data.homeAway}) on ${data.date} at ${data.time}`;
+                    return;
+                }
+                // If no current game, show next game
+                res = await fetch(`/api/next_yankees_game/${currentPlayerId}`);
+                data = await res.json();
+                if (!data.error && data.opponent) {
+                    el.textContent = `Next: ${data.opponent} (${data.homeAway}) on ${data.date} at ${data.time}`;
+                } else {
+                    el.textContent = 'No upcoming Yankees games.';
+                }
+            } catch {
+                el.textContent = 'No upcoming Yankees games.';
+            }
+        }
+
+        // --- Player selection logic ---
+        let allPlayers = [];
+        let currentPlayerId = null;
+        let playerName = '';
+
+        async function fetchPlayers() {
+            const res = await fetch('/api/players');
+            allPlayers = await res.json();
+            const playerSelect = document.getElementById('playerSelect');
+            playerSelect.innerHTML = allPlayers.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+            // Default to first player
+            currentPlayerId = allPlayers[0]?.id;
+            playerSelect.value = currentPlayerId;
+            playerSelect.onchange = function() {
+                currentPlayerId = this.value;
+                loadPlayerDataAndUpdate();
+            };
+        }
+
+        async function fetchPlayerName(playerId) {
+            const res = await fetch(`/api/player_name/${playerId}`);
+            const data = await res.json();
+            playerName = data.player_name || '';
+            const heading = document.getElementById('playerHeading');
+            if (!playerName || playerName === 'Unknown Player') {
+                heading.textContent = 'Game Log & Insights';
+            } else {
+                heading.textContent = playerName + ' Game Log & Insights';
+            }
+        }
+
+        async function fetchGamesForPlayer(playerId) {
+            const res = await fetch(`/api/games/${playerId}`);
+            allGames = await res.json();
+        }
+
+        async function loadPlayerDataAndUpdate() {
+            await fetchPlayerName(currentPlayerId);
+            await fetchGamesForPlayer(currentPlayerId);
+            await fetchMlbTeams();
+            await autoSelectOpponent();
+            populateOpponentSelect();
+            renderJudgeBarChart();
+            fetchCurrentYankeesGame();
+        }
+
+        // Override renderJudgeBarChart to use playerName in heading if needed
+        // (already handled by heading update)
+
+        // On page load, fetch players, then load data for first player
+        (async function init() {
+            await fetchPlayers();
+            await loadPlayerDataAndUpdate();
+        })();
+    </script>
+</body>
+</html>
