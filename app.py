@@ -8,12 +8,23 @@ import traceback
 
 app = Flask(__name__)
 BASE_DIR = '/var/data'
-DATA_DIR = os.path.join(BASE_DIR, 'mlb', 'yankees')
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
+MLB_DATA_DIR = os.path.join(BASE_DIR, 'mlb', 'yankees')
+NBA_DATA_DIR = os.path.join(BASE_DIR, 'nba', 'knicks')
+MLB_TEAMS_PATH = os.path.join(APP_DIR, 'mlb_teams.json')
+NBA_TEAMS_PATH = os.path.join(APP_DIR, 'nba_teams.json')
+YANKEES_SCRIPT = os.path.join(APP_DIR, 'mlb', 'yankees', 'Yankees.py')
+BRUNSON_SCRIPT = os.path.join(APP_DIR, 'nba', 'knicks', 'JalenBrunson.py')
 
 
-def player_file(filename):
-    return os.path.join(DATA_DIR, filename)
+def player_file(sport, filename):
+    if sport == 'nba':
+        return os.path.join(NBA_DATA_DIR, filename)
+    return os.path.join(MLB_DATA_DIR, filename)
+
+
+def get_player_config(player_id):
+    return next((player for player in PLAYERS if player['id'] == player_id), None)
 
 
 
@@ -22,50 +33,55 @@ PLAYERS = [
     {
         'id': 'aaron_judge',
         'name': 'Aaron Judge',
-        'file': player_file('aaron_judge.json')
+        'sport': 'mlb',
+        'file': player_file('mlb', 'aaron_judge.json')
     },
     {
         'id': 'giancarlo_stanton',
         'name': 'Giancarlo Stanton',
-        'file': player_file('giancarlo_stanton.json')
+        'sport': 'mlb',
+        'file': player_file('mlb', 'giancarlo_stanton.json')
     },
     {
         'id': 'ben_rice',
         'name': 'Ben Rice',
-        'file': player_file('ben_rice.json')
+        'sport': 'mlb',
+        'file': player_file('mlb', 'ben_rice.json')
     },
     {
         'id': 'jazz_chisholm_jr',
         'name': 'Jazz Chisholm Jr.',
-        'file': player_file('jazz_chisholm_jr.json')
+        'sport': 'mlb',
+        'file': player_file('mlb', 'jazz_chisholm_jr.json')
     },
     {
         'id': 'trent_grisham',
         'name': 'Trent Grisham',
-        'file': player_file('trent_grisham.json')
+        'sport': 'mlb',
+        'file': player_file('mlb', 'trent_grisham.json')
     },
     {
         'id': 'cody_bellinger',
         'name': 'Cody Bellinger',
-        'file': player_file('cody_bellinger.json')
+        'sport': 'mlb',
+        'file': player_file('mlb', 'cody_bellinger.json')
     },
     {
         'id': 'ryan_mcmahon',
         'name': 'Ryan McMahon',
-        'file': player_file('ryan_mcmahon.json')
+        'sport': 'mlb',
+        'file': player_file('mlb', 'ryan_mcmahon.json')
+    },
+    {
+        'id': 'jalen_brunson',
+        'name': 'Jalen Brunson',
+        'sport': 'nba',
+        'file': player_file('nba', 'jalen_brunson.json')
     }
 ]
 
-next_game_path = player_file('next_yankees_game_output.json')
-mlb_teams_path = os.path.join(APP_DIR, 'mlb_teams.json')
-
-SCHEDULE_URL = "https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/teams/nyy/schedule"
-YANKEES_SCRIPT = os.path.join(APP_DIR, 'mlb', 'yankees', 'Yankees.py')
-
-
-
 def load_player_data(player_id):
-    player = next((p for p in PLAYERS if p['id'] == player_id), None)
+    player = get_player_config(player_id)
     if not player:
         return None
     try:
@@ -100,31 +116,19 @@ def load_next_game(player_id):
     return None
 
 
-def load_mlb_teams():
-    with open(mlb_teams_path, encoding='utf-8') as f:
+def load_teams_for_sport(sport):
+    teams_path = NBA_TEAMS_PATH if sport == 'nba' else MLB_TEAMS_PATH
+    with open(teams_path, encoding='utf-8') as f:
         return json.load(f)
 
-def get_current_yankees_game():
-    import requests
-    from datetime import datetime
-    resp = requests.get(SCHEDULE_URL)
-    resp.raise_for_status()
-    data = resp.json()
-    today = datetime.now().date()
-    for event in data.get('events', []):
-        date_str = event['date'][:10]  # 'YYYY-MM-DD'
-        game_date = datetime.strptime(date_str, '%Y-%m-%d').date()
-        if game_date == today:
-            competitors = event['competitions'][0]['competitors']
-            for team in competitors:
-                if team['team']['abbreviation'] != 'NYY':
-                    opponent = team['team']['displayName']
-                    home_away = 'Home' if team['homeAway'] == 'away' else 'Away'
-                    return {
-                        'date': date_str,
-                        'opponent': opponent,
-                        'homeAway': home_away
-                    }
+
+def resolve_opponent_abbreviation(player_id, opponent_name):
+    player = get_player_config(player_id)
+    if not player or not opponent_name:
+        return None
+    for team in load_teams_for_sport(player['sport']):
+        if team['name'] == opponent_name:
+            return team['abbreviation']
     return None
 
 
@@ -134,6 +138,7 @@ def run_task1():
         print('Flask is running as user:', getpass.getuser())
         scripts = [
             ("/opt/render/project/src/mlb/yankees/Yankees.py", "/opt/render/project/src/mlb/yankees/"),
+            ("/opt/render/project/src/nba/knicks/Knicks.py", "/opt/render/project/src/nba/knicks/")
         ]
         for script, cwd in scripts:
             try:
@@ -162,7 +167,7 @@ def run_task1():
 # List all available players
 @app.route('/api/players')
 def api_players():
-    return jsonify([{'id': p['id'], 'name': p['name']} for p in PLAYERS])
+    return jsonify([{'id': p['id'], 'name': p['name'], 'sport': p['sport']} for p in PLAYERS])
 
 # Get games for a specific player
 
@@ -180,47 +185,39 @@ def api_games_player(player_id):
 # API to get the player name from the JSON file (dynamic)
 @app.route('/api/player_name/<player_id>')
 def api_player_name(player_id):
-    data = load_player_data(player_id)
-    if not data:
-        return jsonify({'player_name': 'Unknown Player'})
-    player_name = None
-    # If data is a dict, try to get name fields
-    if isinstance(data, dict):
-        player_name = data.get('player') or data.get('name') or data.get('Player')
-    # If data is a list, try to get from first item
-    elif isinstance(data, list) and data and isinstance(data[0], dict):
-        player_name = data[0].get('player') or data[0].get('name') or data[0].get('Player')
-    if not player_name:
-        player_name = 'Unknown Player'
-    return jsonify({'player_name': player_name})
+    player = get_player_config(player_id)
+    if not player:
+        return jsonify({'player_name': 'Unknown Player', 'sport': None})
+    return jsonify({'player_name': player['name'], 'sport': player['sport']})
 
 
 
-# API to get the next Yankees game info (with opponent abbreviation) for a player
-@app.route('/api/next_yankees_game/<player_id>')
-def api_next_yankees_game(player_id):
+# API to get the next game info (with opponent abbreviation) for a player
+@app.route('/api/next_game/<player_id>')
+def api_next_game(player_id):
     next_game = load_next_game(player_id)
     if not next_game:
-        return jsonify({'error': 'No next Yankees game found.'}), 404
-    mlb_teams = load_mlb_teams()
-    opp_name = next_game.get('opponent')
-    opp_abbr = None
-    for team in mlb_teams:
-        if team['name'] == opp_name:
-            opp_abbr = team['abbreviation']
-            break
-    next_game['opponent_abbr'] = opp_abbr
-    return jsonify(next_game)
+        return jsonify({'error': 'No next game found.'}), 404
+    response = dict(next_game)
+    response['opponent_abbr'] = resolve_opponent_abbreviation(player_id, next_game.get('opponent'))
+    return jsonify(response)
 
 
-# API to get the current Yankees game info for a player
-@app.route('/api/current_yankees_game/<player_id>')
-def api_current_yankees_game(player_id):
+# API to get the current game info for a player
+@app.route('/api/current_game/<player_id>')
+def api_current_game(player_id):
     current_game = load_current_game(player_id)
     if current_game:
         return jsonify(current_game)
     else:
-        return jsonify({'error': 'No Yankees game today.'}), 404
+        return jsonify({'error': 'No game today.'}), 404
+
+
+@app.route('/api/teams/<sport>')
+def api_teams(sport):
+    if sport not in {'mlb', 'nba'}:
+        return jsonify({'error': 'Unsupported sport.'}), 404
+    return jsonify(load_teams_for_sport(sport))
 
 @app.route('/')
 def index():
