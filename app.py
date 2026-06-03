@@ -7,6 +7,13 @@ import threading
 import traceback
 
 app = Flask(__name__)
+BASE_DIR = '/var/data'
+DATA_DIR = os.path.join(BASE_DIR, 'mlb', 'yankees')
+APP_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+def player_file(filename):
+    return os.path.join(DATA_DIR, filename)
 
 
 
@@ -15,46 +22,45 @@ PLAYERS = [
     {
         'id': 'aaron_judge',
         'name': 'Aaron Judge',
-        'file': os.path.join('mlb', 'yankees', 'aaron_judge.json')
+        'file': player_file('aaron_judge.json')
     },
     {
         'id': 'giancarlo_stanton',
         'name': 'Giancarlo Stanton',
-        'file': os.path.join('mlb', 'yankees', 'giancarlo_stanton.json')
+        'file': player_file('giancarlo_stanton.json')
     },
     {
         'id': 'ben_rice',
         'name': 'Ben Rice',
-        'file': os.path.join('mlb', 'yankees', 'ben_rice.json')
+        'file': player_file('ben_rice.json')
     },
     {
         'id': 'jazz_chisholm_jr',
         'name': 'Jazz Chisholm Jr.',
-        'file': os.path.join('mlb', 'yankees', 'jazz_chisholm_jr.json')
+        'file': player_file('jazz_chisholm_jr.json')
     },
     {
         'id': 'trent_grisham',
         'name': 'Trent Grisham',
-        'file': os.path.join('mlb', 'yankees', 'trent_grisham.json')
+        'file': player_file('trent_grisham.json')
     },
     {
         'id': 'cody_bellinger',
         'name': 'Cody Bellinger',
-        'file': os.path.join('mlb', 'yankees', 'cody_bellinger.json')
+        'file': player_file('cody_bellinger.json')
     },
     {
         'id': 'ryan_mcmahon',
         'name': 'Ryan McMahon',
-        'file': os.path.join('mlb', 'yankees', 'ryan_mcmahon.json')
+        'file': player_file('ryan_mcmahon.json')
     }
 ]
 
-next_game_path = os.path.join('mlb', 'yankees', 'next_yankees_game_output.json')
-mlb_teams_path = 'mlb_teams.json'
+next_game_path = player_file('next_yankees_game_output.json')
+mlb_teams_path = os.path.join(APP_DIR, 'mlb_teams.json')
 
 SCHEDULE_URL = "https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/teams/nyy/schedule"
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-YANKEES_SCRIPT = os.path.join(BASE_DIR, 'mlb', 'Yankees.py')
+YANKEES_SCRIPT = os.path.join(APP_DIR, 'mlb', 'yankees', 'Yankees.py')
 
 
 
