@@ -18,8 +18,10 @@
             color: #f5f6fa;
             overflow-x: hidden;
         }
-        body {
+            body {
             min-height: 100vh;
+                -webkit-text-size-adjust: 100%;
+                min-height: 100dvh;
             width: 100%;
             box-sizing: border-box;
             display: flex;
@@ -35,7 +37,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: flex-start;
-            padding: 0 16px 24px;
+                padding: 0 max(16px, env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
             box-sizing: border-box;
         }
         #currentYankeesGame {
@@ -82,7 +84,7 @@
             padding: 0;
         }
         button, select, label {
-            font-size: 1rem;
+              font-size: 16px;
         }
         label {
             white-space: nowrap;
@@ -109,10 +111,36 @@
             padding: 4px 10px;
             min-height: 40px;
             max-width: 100%;
+                -webkit-appearance: none;
+                appearance: none;
         }
+            .selector-row {
+                align-items: flex-end;
+            }
+            .threshold-row {
+                width: 100%;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                margin-bottom: 10px;
+                max-width: 1100px;
+            }
+            .threshold-controls {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                margin-bottom: 8px;
+                flex-wrap: wrap;
+                justify-content: center;
+                width: 100%;
+            }
+            .threshold-controls input[type="range"] {
+                flex: 1 1 240px;
+                min-width: 0;
+            }
         @media (max-width: 768px) {
             .main-full {
-                padding: 0 12px 20px;
+                    padding: 0 max(12px, env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
             }
             #playerHeading {
                 text-align: center;
@@ -128,17 +156,38 @@
                 gap: 10px;
                 margin-bottom: 14px;
             }
-            .controls-row {
-                justify-content: stretch;
+                .sport-switch-row,
+                .filter-row {
+                    display: grid;
+                    grid-template-columns: repeat(2, minmax(0, 1fr));
+                    align-items: stretch;
             }
-            .controls-row label {
+                .selector-row {
+                    display: grid;
+                    grid-template-columns: 1fr;
+                    align-items: stretch;
+                }
+                .selector-row label {
                 width: 100%;
                 text-align: left;
             }
-            .controls-row select,
-            .controls-row button {
+                .selector-row select,
+                .sport-switch-row button,
+                .filter-row button {
                 width: 100%;
             }
+                .threshold-row {
+                    align-items: stretch;
+                }
+                .threshold-controls {
+                    justify-content: stretch;
+                    gap: 8px;
+                }
+                .threshold-controls label,
+                .threshold-controls span {
+                    width: 100%;
+                    text-align: left;
+                }
             #judgeBarChart {
                 width: 100% !important;
                 height: 48vh !important;
@@ -152,6 +201,10 @@
             body {
                 font-size: 15px;
             }
+                .sport-switch-row,
+                .filter-row {
+                    grid-template-columns: 1fr;
+                }
             #judgeBarChart {
                 height: 42vh !important;
                 min-height: 280px;
@@ -162,11 +215,11 @@
         <h2 id="playerHeading" style="margin-top:32px; color:#ffd600; font-size:2rem; letter-spacing:1px;">Game Log & Insights</h2>
         <div id="sportIndicator">MLB</div>
         <div id="currentYankeesGame"></div>
-        <div class="controls-row">
+        <div class="controls-row sport-switch-row">
             <button id="mlbSportBtn" class="active">MLB</button>
             <button id="nbaSportBtn">NBA</button>
         </div>
-        <div class="controls-row">
+        <div class="controls-row selector-row">
             <label for="playerSelect">Player:</label>
             <select id="playerSelect"></select>
             <label for="opponentSelect">Opponent:</label>
@@ -174,15 +227,15 @@
             <label for="statSelect">Stat:</label>
             <select id="statSelect"></select>
         </div>
-        <div class="controls-row">
+        <div class="controls-row filter-row">
             <button id="allBtn" class="active">All</button>
             <button id="last5Btn">Last 5</button>
             <button id="last10Btn">Last 10</button>
             <button id="hh5Btn">Last 5 vs Opponent</button>
             <button id="hh10Btn">Last 10 vs Opponent</button>
         </div>
-        <div style="width:100%; display:flex; flex-direction:column; align-items:center; margin-bottom:10px; max-width:1100px;">
-            <div style="display:flex; align-items:center; gap:12px; margin-bottom:8px;">
+        <div class="threshold-row">
+            <div class="threshold-controls">
                 <label for="thresholdInput" style="color:#ffd600; font-size:1.05rem;">Threshold:</label>
                 <input type="range" id="thresholdInput" min="0" max="75" step="0.5" value="1" style="width:min(240px, 60vw); max-width:100%;">
                 <span id="thresholdValue" style="color:#ffd600; font-size:1.05rem;">1</span>
@@ -364,7 +417,16 @@
                         }
                     },
                     scales: {
-                        x: { ticks: { color: '#b0bec5' }, grid: { color: '#2e3743' } },
+                        x: {
+                            ticks: {
+                                color: '#b0bec5',
+                                autoSkip: true,
+                                maxTicksLimit: 6,
+                                maxRotation: 45,
+                                minRotation: 0
+                            },
+                            grid: { color: '#2e3743' }
+                        },
                         y: { ticks: { color: '#b0bec5' }, grid: { color: '#2e3743' } }
                     }
                 }
