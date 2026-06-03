@@ -127,7 +127,7 @@ def run_task1():
     def run_all_scripts():
         print('Flask is running as user:', getpass.getuser())
         scripts = [
-            (YANKEES_SCRIPT, BASE_DIR),
+            ("/opt/render/project/src/mlb/yankees/Yankees.py", "/opt/render/project/src/mlb/yankees"),
         ]
         for script, cwd in scripts:
             try:
