@@ -12,11 +12,13 @@ app = Flask(__name__)
 BASE_DIR = '/var/data'
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 MLB_DATA_DIR = os.path.join(BASE_DIR, 'mlb', 'yankees')
+RED_SOX_DATA_DIR = os.path.join(BASE_DIR, 'mlb', 'red_sox')
 NBA_DATA_DIR = os.path.join(BASE_DIR, 'nba', 'knicks')
 SPURS_DATA_DIR = os.path.join(BASE_DIR, 'nba', 'spurs')
 MLB_TEAMS_PATH = os.path.join(APP_DIR, 'mlb_teams.json')
 NBA_TEAMS_PATH = os.path.join(APP_DIR, 'nba_teams.json')
 YANKEES_SCRIPT = os.path.join(APP_DIR, 'mlb', 'yankees', 'Yankees.py')
+RED_SOX_SCRIPT = os.path.join(APP_DIR, 'mlb', 'red_sox', 'RedSox.py')
 BRUNSON_SCRIPT = os.path.join(APP_DIR, 'nba', 'knicks', 'JalenBrunson.py')
 SPURS_SCRIPT = os.path.join(APP_DIR, 'nba', 'spurs', 'Spurs.py')
 RUN_TASK_LOCK = threading.Lock()
@@ -52,6 +54,14 @@ PLAYER_PROP_MARKETS = {
 def player_file(sport, filename):
     if sport == 'nba':
         return os.path.join(NBA_DATA_DIR, filename)
+    if filename in {
+        'wilyer_abreu.json',
+        'jarren_duran.json',
+        'ceddanne_rafaela.json',
+        'willson_contreras.json',
+        'isiah_kiner_falefa.json'
+    }:
+        return os.path.join(RED_SOX_DATA_DIR, filename)
     return os.path.join(MLB_DATA_DIR, filename)
 
 
@@ -103,6 +113,36 @@ PLAYERS = [
         'name': 'Ryan McMahon',
         'sport': 'mlb',
         'file': player_file('mlb', 'ryan_mcmahon.json')
+    },
+    {
+        'id': 'wilyer_abreu',
+        'name': 'Wilyer Abreu',
+        'sport': 'mlb',
+        'file': player_file('mlb', 'wilyer_abreu.json')
+    },
+    {
+        'id': 'jarren_duran',
+        'name': 'Jarren Duran',
+        'sport': 'mlb',
+        'file': player_file('mlb', 'jarren_duran.json')
+    },
+    {
+        'id': 'ceddanne_rafaela',
+        'name': 'Ceddanne Rafaela',
+        'sport': 'mlb',
+        'file': player_file('mlb', 'ceddanne_rafaela.json')
+    },
+    {
+        'id': 'willson_contreras',
+        'name': 'Willson Contreras',
+        'sport': 'mlb',
+        'file': player_file('mlb', 'willson_contreras.json')
+    },
+    {
+        'id': 'isiah_kiner_falefa',
+        'name': 'Isiah Kiner-Falefa',
+        'sport': 'mlb',
+        'file': player_file('mlb', 'isiah_kiner_falefa.json')
     },
     {
         'id': 'jalen_brunson',
@@ -239,6 +279,8 @@ def resolve_opponent_abbreviation(player_id, opponent_name):
 
 def get_player_team_name(player):
     if player['sport'] == 'mlb':
+        if os.path.normpath(player['file']).startswith(os.path.normpath(RED_SOX_DATA_DIR)):
+            return 'Boston Red Sox'
         return 'New York Yankees'
     if os.path.normpath(player['file']).startswith(os.path.normpath(SPURS_DATA_DIR)):
         return 'San Antonio Spurs'
@@ -422,6 +464,7 @@ def run_task1():
             print('Flask is running as user:', getpass.getuser())
             scripts = [
                 ("/opt/render/project/src/mlb/yankees/Yankees.py", "/opt/render/project/src/mlb/yankees/"),
+                ("/opt/render/project/src/mlb/red_sox/RedSox.py", "/opt/render/project/src/mlb/red_sox/"),
                 ("/opt/render/project/src/nba/knicks/Knicks.py", "/opt/render/project/src/nba/knicks/"),
                 ("/opt/render/project/src/nba/spurs/Spurs.py", "/opt/render/project/src/nba/spurs/")
                 
