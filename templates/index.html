@@ -503,6 +503,7 @@
                     { value: 'PTS', label: 'Points' },
                     { value: 'REB', label: 'Rebounds' },
                     { value: 'AST', label: 'Assists' },
+                    { value: '3PM', label: 'Three-Pointers Made' },
                             { value: 'PTS_REB_AST', label: 'PTS+REB+AST' },
                     { value: 'STL', label: 'Steals' }
                 ]
@@ -520,6 +521,9 @@
                 const reb = parseFloat(game.REB) || parseFloat(game.REB_TRAD) || 0;
                 const ast = parseFloat(game.AST) || parseFloat(game.AST_TRAD) || 0;
                 return pts + reb + ast;
+            }
+            if (statValue === '3PM') {
+                return parseFloat(game['3PM']) || parseFloat(game['3PTM']) || parseFloat(game['3PT']) || 0;
             }
             return parseFloat(game[statValue]) || 0;
         }
