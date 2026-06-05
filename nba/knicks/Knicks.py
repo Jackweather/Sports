@@ -33,6 +33,11 @@ PLAYERS = [
         "name": "Josh Hart",
         "espn_id": 3062679,
         "output": "josh_hart.json"
+    },
+    {
+        "name": "Landry Shamet",
+        "espn_id": 3914044,
+        "output": "landry_shamet.json"
     }
 ]
 BASE_URL = "https://site.api.espn.com/apis/common/v3/sports/basketball/nba/athletes/{}/gamelog?season={}"
