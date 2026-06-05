@@ -825,6 +825,7 @@
             const selectedStat = statSelect ? statSelect.value : '';
             const opponentCode = getOpponentCode(currentOpponent);
             const currentPlayer = getCurrentPlayer();
+            const threshold = parseFloat(document.getElementById('thresholdInput')?.value || 1);
 
             if (!currentPlayer || !allGames.length || !opponentCode) {
                 titleEl.textContent = 'Matchup: select a player and opponent';
@@ -867,17 +868,15 @@
             // Build rows: for each stat key compute the recent head-to-head trend
             const rows = statKeys.map(key => {
                 const label = (sportConfigs[currentSport] && (sportConfigs[currentSport].stats || []).find(s=>s.value===key))?.label || key;
-                const seasonAvg = calculateStatMetrics(seasonGames, key, 0).average;
-                const h2hSeason = calculateRateAgainstBaseline(opponentGamesSeason, key, seasonAvg);
-                const h2hHistoricLast5 = calculateRateAgainstBaseline(opponentHistoric.slice(0,5), key, seasonAvg);
-                const h2hHistoricLast10 = calculateRateAgainstBaseline(opponentHistoric.slice(0,10), key, seasonAvg);
+                const h2hSeason = calculateStatMetrics(opponentGamesSeason, key, threshold);
+                const h2hHistoricLast5 = calculateStatMetrics(opponentHistoric.slice(0,5), key, threshold);
+                const h2hHistoricLast10 = calculateStatMetrics(opponentHistoric.slice(0,10), key, threshold);
                 return {
                     statValue: key,
                     statLabel: label,
                     h2hSeason,
                     h2hHistoricLast5,
-                    h2hHistoricLast10,
-                    seasonBaseline: { average: seasonAvg }
+                    h2hHistoricLast10
                 };
             });
 
@@ -1331,6 +1330,7 @@
                     thresholdInput.value = String(linePoint);
                     thresholdValue.textContent = linePoint.toFixed(1);
                     renderJudgeBarChart();
+                    renderAdvancedInsights();
                 }
                 el.textContent = `${label} line: ${data.line.point} at ${data.line.bookmaker} | O ${overPrice} / U ${underPrice}`;
             } catch {
