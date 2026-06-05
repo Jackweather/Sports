@@ -922,58 +922,35 @@
             }
 
             const statKeys = getPlayerStatKeys();
-            if (!statKeys.length) {
+            const currentStatValue = selectedStat || statKeys[0];
+            if (!currentStatValue) {
                 tableBody.innerHTML = '<tr><td colspan="3">No numeric stats found in player data.</td></tr>';
                 return;
             }
 
-            // Build rows: for each stat key compute the recent head-to-head trend
-            const rows = statKeys.map(key => {
-                const label = (sportConfigs[currentSport] && (sportConfigs[currentSport].stats || []).find(s=>s.value===key))?.label || key;
-                const rowThreshold = getAdvancedInsightThreshold(currentPlayer.id, key, selectedStat, threshold);
-                const h2hSeason = rowThreshold === null ? null : calculateStatMetrics(opponentGamesSeason, key, rowThreshold);
-                const h2hHistoricLast5 = rowThreshold === null ? null : calculateStatMetrics(opponentHistoric.slice(0,5), key, rowThreshold);
-                const h2hHistoricLast10 = rowThreshold === null ? null : calculateStatMetrics(opponentHistoric.slice(0,10), key, rowThreshold);
-                return {
-                    statValue: key,
-                    statLabel: label,
-                    rowThreshold,
-                    h2hSeason,
-                    h2hHistoricLast5,
-                    h2hHistoricLast10
-                };
-            });
-
-            // Sort by most significant h2hSeason rate then sample size
-            rows.sort((a,b)=>{
-                const aRate = a.h2hSeason ? a.h2hSeason.rate : -1;
-                const bRate = b.h2hSeason ? b.h2hSeason.rate : -1;
-                if (bRate !== aRate) return bRate - aRate;
-                const aTotal = a.h2hSeason ? a.h2hSeason.total : -1;
-                const bTotal = b.h2hSeason ? b.h2hSeason.total : -1;
-                return bTotal - aTotal;
-            });
+            const statConfig = (sportConfigs[currentSport] && (sportConfigs[currentSport].stats || []).find(s => s.value === currentStatValue)) || null;
+            const rowThreshold = getAdvancedInsightThreshold(currentPlayer.id, currentStatValue, selectedStat, threshold);
+            const h2hSeason = rowThreshold === null ? null : calculateStatMetrics(opponentGamesSeason, currentStatValue, rowThreshold);
+            const h2hHistoricLast5 = rowThreshold === null ? null : calculateStatMetrics(opponentHistoric.slice(0, 5), currentStatValue, rowThreshold);
+            const h2hHistoricLast10 = rowThreshold === null ? null : calculateStatMetrics(opponentHistoric.slice(0, 10), currentStatValue, rowThreshold);
 
             titleEl.textContent = `${currentPlayer.name} vs ${opponentCode}`;
             metaEl.textContent = `${opponentHistoric.length} total h2h games (season: ${opponentGamesSeason.length})`;
 
-            // Simple summary: top stat
-            const top = rows.find(row => row.h2hSeason);
-            if (!top) {
+            if (!h2hSeason) {
                 summaryEl.innerHTML = '<div class="insight-card"><div class="insight-card-label">Top Stat</div><div class="insight-card-value">No line available</div><div class="insight-card-detail">No stat-specific betting lines were found for this matchup view.</div></div>';
             } else {
-                summaryEl.innerHTML = `<div style="display:flex;gap:12px;flex-wrap:wrap"><div class="insight-card"><div class="insight-card-label">Top Stat</div><div class="insight-card-value">${top.statLabel}</div><div class="insight-card-detail">${formatRate(top.h2hSeason.rate, top.h2hSeason.hits, top.h2hSeason.total)} at line ${top.rowThreshold}</div></div></div>`;
+                summaryEl.innerHTML = `<div style="display:flex;gap:12px;flex-wrap:wrap"><div class="insight-card"><div class="insight-card-label">Current Stat</div><div class="insight-card-value">${statConfig ? statConfig.label : currentStatValue}</div><div class="insight-card-detail">${formatRate(h2hSeason.rate, h2hSeason.hits, h2hSeason.total)} at line ${rowThreshold}</div></div></div>`;
             }
 
-            tableBody.innerHTML = rows.map(row => {
-                return `
-                    <tr data-stat-value="${row.statValue}">
-                        <td>${row.statLabel}</td>
-                        <td class="${getInsightMetricClass(row.h2hHistoricLast5)}" data-filter-key="last5">${formatInsightMetric(row.h2hHistoricLast5)}</td>
-                        <td class="${getInsightMetricClass(row.h2hHistoricLast10)}" data-filter-key="last10">${formatInsightMetric(row.h2hHistoricLast10)}</td>
-                    </tr>
-                `;
-            }).join('');
+            const statLabel = statConfig ? statConfig.label : currentStatValue;
+            tableBody.innerHTML = `
+                <tr data-stat-value="${currentStatValue}">
+                    <td>${statLabel}</td>
+                    <td class="${getInsightMetricClass(h2hHistoricLast5)}" data-filter-key="last5">${formatInsightMetric(h2hHistoricLast5)}</td>
+                    <td class="${getInsightMetricClass(h2hHistoricLast10)}" data-filter-key="last10">${formatInsightMetric(h2hHistoricLast10)}</td>
+                </tr>
+            `;
         }
         function clearBestHitRateDisplay() {
             const el = document.getElementById('bestHitRateDisplay');
