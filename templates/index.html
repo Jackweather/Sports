@@ -57,6 +57,15 @@
             line-height: 1.4;
             min-height: 1.4em;
         }
+        #bestHitRateDisplay {
+            text-align: center;
+            font-size: 0.95rem;
+            color: #ffd600;
+            margin: -4px 0 16px 0;
+            max-width: 760px;
+            line-height: 1.4;
+            min-height: 1.4em;
+        }
         #sportIndicator {
             color: #ffd600;
             border: 1px solid #ffd600;
@@ -236,6 +245,7 @@
             <select id="opponentSelect"></select>
             <label for="statSelect">Stat:</label>
             <select id="statSelect"></select>
+            <button id="opponentOnlyBtn" type="button">Opponent Only: Off</button>
         </div>
         <div class="controls-row filter-row">
             <button id="allBtn" class="active">All</button>
@@ -243,7 +253,14 @@
             <button id="last10Btn">Last 10</button>
             <button id="hh5Btn">Last 5 vs Opponent</button>
             <button id="hh10Btn">Last 10 vs Opponent</button>
+            <button id="bestHitRateBtn">Best Hit Rate</button>
+            <select id="bestRankSelect" aria-label="Best rank selector">
+                <option value="1">Best</option>
+                <option value="2">2nd Best</option>
+                <option value="3">3rd Best</option>
+            </select>
         </div>
+        <div id="bestHitRateDisplay"></div>
         <div class="threshold-row">
             <div class="threshold-controls">
                 <label for="thresholdInput" style="color:#ffd600; font-size:1.05rem;">Threshold:</label>
@@ -264,8 +281,16 @@
         let allGames = [];
         let currentOpponent = '';
         let currentSport = 'mlb';
+        let opponentOnlyMode = false;
         let teamsBySport = { mlb: [], nba: [] };
         let filteredPlayers = [];
+        const filterLabels = {
+            all: 'All',
+            last5: 'Last 5',
+            last10: 'Last 10',
+            hh5: 'Last 5 vs Opponent',
+            hh10: 'Last 10 vs Opponent'
+        };
         const sportConfigs = {
             mlb: {
                 label: 'MLB',
@@ -331,20 +356,200 @@
         }
         function getFilteredGamesForChart() {
             const selectedOpponent = getOpponentCode(currentOpponent);
+            const baseGames = opponentOnlyMode
+                ? allGames.filter(g => getOpponentCode(g.OPP) === selectedOpponent)
+                : allGames;
             switch (currentChartFilter) {
                 case 'all':
-                    return allGames;
+                    return baseGames;
                 case 'last5':
-                    return allGames.slice(0, 5);
+                    return baseGames.slice(0, 5);
                 case 'last10':
-                    return allGames.slice(0, 10);
+                    return baseGames.slice(0, 10);
                 case 'hh5':
                     return allGames.filter(g => getOpponentCode(g.OPP) === selectedOpponent).slice(0, 5);
                 case 'hh10':
                     return allGames.filter(g => getOpponentCode(g.OPP) === selectedOpponent).slice(0, 10);
                 default:
-                    return allGames;
+                    return baseGames;
             }
+        }
+        function getGamesForFilter(filterKey) {
+            const previousFilter = currentChartFilter;
+            currentChartFilter = filterKey;
+            const games = getFilteredGamesForChart();
+            currentChartFilter = previousFilter;
+            return games;
+        }
+        function getGamesForScenario(filterKey, opponentCode, opponentOnly, statValue) {
+            const previousFilter = currentChartFilter;
+            const previousOpponent = currentOpponent;
+            const previousOpponentOnlyMode = opponentOnlyMode;
+
+            currentChartFilter = filterKey;
+            currentOpponent = opponentCode;
+            opponentOnlyMode = opponentOnly;
+
+            const games = getFilteredGamesForChart();
+            const hits = games.reduce((count, game) => count + ((parseFloat(game[statValue]) || 0) >= parseFloat(document.getElementById('thresholdInput')?.value || 1) ? 1 : 0), 0);
+
+            currentChartFilter = previousFilter;
+            currentOpponent = previousOpponent;
+            opponentOnlyMode = previousOpponentOnlyMode;
+
+            return {
+                games,
+                hits,
+                total: games.length,
+                rate: games.length ? hits / games.length : 0
+            };
+        }
+        function clearBestHitRateDisplay() {
+            const el = document.getElementById('bestHitRateDisplay');
+            if (el) {
+                el.textContent = '';
+            }
+        }
+        function updateOpponentOnlyButton() {
+            const button = document.getElementById('opponentOnlyBtn');
+            if (button) {
+                button.textContent = `Opponent Only: ${opponentOnlyMode ? 'On' : 'Off'}`;
+                button.classList.toggle('active', opponentOnlyMode);
+            }
+        }
+        function setActiveFilterButton(filterKey) {
+            const filterButtonMap = {
+                all: document.getElementById('allBtn'),
+                last5: document.getElementById('last5Btn'),
+                last10: document.getElementById('last10Btn'),
+                hh5: document.getElementById('hh5Btn'),
+                hh10: document.getElementById('hh10Btn')
+            };
+            Object.values(filterButtonMap).forEach(button => {
+                if (button) {
+                    button.classList.remove('active');
+                }
+            });
+            const activeButton = filterButtonMap[filterKey];
+            if (activeButton) {
+                activeButton.classList.add('active');
+            }
+        }
+        function applyFilter(filterKey) {
+            currentChartFilter = filterKey;
+            setActiveFilterButton(filterKey);
+            renderJudgeBarChart();
+        }
+        async function fetchPlayerMatchup(playerId) {
+            let response = await fetch(`/api/current_game/${playerId}`);
+            let data = await response.json();
+            if (!response.ok || data.error || !data.opponent) {
+                response = await fetch(`/api/next_game/${playerId}`);
+                data = await response.json();
+            }
+            if (!response.ok || data.error || !data.opponent) {
+                return null;
+            }
+
+            let opponentCode = data.opponent_abbr || '';
+            if (!opponentCode && data.opponent) {
+                const teams = getSportTeams();
+                const teamMatch = teams.find(team => team.name === data.opponent || data.opponent.trim().endsWith(team.name.trim()));
+                if (teamMatch) {
+                    opponentCode = teamMatch.abbreviation;
+                }
+            }
+
+            return {
+                opponent: data.opponent,
+                opponentCode: getOpponentCode(opponentCode)
+            };
+        }
+        async function fetchBestSportMatchupScenario() {
+            await fetchTeamsForSport(currentSport);
+            const sportPlayers = allPlayers.filter(player => player.sport === currentSport);
+            const statOptions = (sportConfigs[currentSport] || sportConfigs.mlb).stats;
+            const threshold = parseFloat(document.getElementById('thresholdInput')?.value || 1);
+            const results = [];
+
+            for (const player of sportPlayers) {
+                const matchup = await fetchPlayerMatchup(player.id);
+                if (!matchup || !matchup.opponentCode) {
+                    continue;
+                }
+
+                const gamesResponse = await fetch(`/api/games/${player.id}`);
+                const games = await gamesResponse.json();
+                if (!gamesResponse.ok || !Array.isArray(games)) {
+                    continue;
+                }
+
+                const opponentGames = games.filter(game => getOpponentCode(game.OPP) === matchup.opponentCode);
+                if (!opponentGames.length) {
+                    continue;
+                }
+
+                for (const statOption of statOptions) {
+                    const hits = opponentGames.reduce((count, game) => count + ((parseFloat(game[statOption.value]) || 0) >= threshold ? 1 : 0), 0);
+                    const rate = hits / opponentGames.length;
+                    results.push({
+                        playerId: player.id,
+                        playerName: player.name,
+                        statValue: statOption.value,
+                        statLabel: statOption.label,
+                        opponent: matchup.opponent,
+                        opponentCode: matchup.opponentCode,
+                        hits,
+                        total: opponentGames.length,
+                        rate
+                    });
+                }
+            }
+
+            results.sort((left, right) => {
+                if (right.rate !== left.rate) {
+                    return right.rate - left.rate;
+                }
+                if (right.total !== left.total) {
+                    return right.total - left.total;
+                }
+                return right.hits - left.hits;
+            });
+
+            return results;
+        }
+        async function applyBestHitRateFilter() {
+            const rankSelect = document.getElementById('bestRankSelect');
+            const selectedRank = Math.max(1, parseInt(rankSelect?.value || '1', 10));
+            const results = await fetchBestSportMatchupScenario();
+            const result = results[selectedRank - 1];
+            const el = document.getElementById('bestHitRateDisplay');
+            if (!result) {
+                el.textContent = `No ${selectedRank}${selectedRank === 1 ? 'st' : selectedRank === 2 ? 'nd' : 'rd'} current matchup result found for this sport.`;
+                return;
+            }
+
+            currentPlayerId = result.playerId;
+            populatePlayerSelect();
+            await loadPlayerDataAndUpdate();
+
+            const statSelect = document.getElementById('statSelect');
+            const opponentSelect = document.getElementById('opponentSelect');
+            if (statSelect) {
+                statSelect.value = result.statValue;
+            }
+            if (opponentSelect && result.opponentCode) {
+                opponentSelect.value = result.opponentCode;
+            }
+
+            currentOpponent = result.opponentCode;
+            opponentOnlyMode = true;
+            updateOpponentOnlyButton();
+            applyFilter('all');
+            fetchPlayerLine();
+
+            const rankLabel = selectedRank === 1 ? 'Best' : selectedRank === 2 ? '2nd Best' : '3rd Best';
+            el.textContent = `${rankLabel} current matchup: ${result.playerName} ${result.statLabel} vs ${result.opponentCode} at ${(result.rate * 100).toFixed(0)}% (${result.hits}/${result.total}) over the current threshold.`;
         }
         function renderJudgeBarChart() {
             // Annotation plugin is already registered at script load
@@ -452,6 +657,7 @@
             thresholdInput.oninput = function() {
                 // Always show value with one decimal, but .0 as .0
                 thresholdValue.textContent = parseFloat(this.value).toFixed(1);
+                clearBestHitRateDisplay();
                 renderJudgeBarChart();
             };
             // Set initial display value
@@ -511,28 +717,34 @@
             }
             select.onchange = function() {
                 currentOpponent = getOpponentCode(this.value);
+                clearBestHitRateDisplay();
                 renderJudgeBarChart();
             };
         }
         document.getElementById('allBtn').onclick = function() {
-            setActive(this); currentChartFilter = 'all'; renderJudgeBarChart();
+            clearBestHitRateDisplay(); applyFilter('all');
         };
         document.getElementById('last5Btn').onclick = function() {
-            setActive(this); currentChartFilter = 'last5'; renderJudgeBarChart();
+            clearBestHitRateDisplay(); applyFilter('last5');
         };
         document.getElementById('last10Btn').onclick = function() {
-            setActive(this); currentChartFilter = 'last10'; renderJudgeBarChart();
+            clearBestHitRateDisplay(); applyFilter('last10');
         };
         document.getElementById('hh5Btn').onclick = function() {
-            setActive(this); currentChartFilter = 'hh5'; renderJudgeBarChart();
+            clearBestHitRateDisplay(); applyFilter('hh5');
         };
         document.getElementById('hh10Btn').onclick = function() {
-            setActive(this); currentChartFilter = 'hh10'; renderJudgeBarChart();
+            clearBestHitRateDisplay(); applyFilter('hh10');
         };
-        function setActive(btn) {
-            document.querySelectorAll('.controls-row button').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-        }
+        document.getElementById('bestHitRateBtn').onclick = async function() {
+            await applyBestHitRateFilter();
+        };
+        document.getElementById('opponentOnlyBtn').onclick = function() {
+            opponentOnlyMode = !opponentOnlyMode;
+            clearBestHitRateDisplay();
+            updateOpponentOnlyButton();
+            renderJudgeBarChart();
+        };
         async function fetchCurrentGame() {
             const el = document.getElementById('currentYankeesGame');
             try {
@@ -604,9 +816,12 @@
             allPlayers = await res.json();
             const playerSelect = document.getElementById('playerSelect');
             currentSport = 'mlb';
+            opponentOnlyMode = false;
+            updateOpponentOnlyButton();
             populatePlayerSelect();
             playerSelect.onchange = function() {
                 currentPlayerId = this.value;
+                clearBestHitRateDisplay();
                 loadPlayerDataAndUpdate();
             };
         }
@@ -620,6 +835,8 @@
             const data = await res.json();
             playerName = data.player_name || '';
             currentSport = data.sport || getCurrentPlayer()?.sport || 'mlb';
+            clearBestHitRateDisplay();
+            updateOpponentOnlyButton();
             populatePlayerSelect();
             updateSportUI();
             const heading = document.getElementById('playerHeading');
