@@ -45,7 +45,7 @@ SCHEDULE_URL = "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/tea
 BASE_DIR = '/var/data'
 OUTPUT_DIR = os.path.join(BASE_DIR, 'nba', 'knicks')
 LOCAL_TZ = pytz.timezone("America/New_York")
-STAT_KEYS = ["PTS", "REB", "AST", "STL"]
+STAT_KEYS = ["PTS", "REB", "AST", "3PM", "STL"]
 
 
 def format_game_date(date_str):
@@ -54,17 +54,42 @@ def format_game_date(date_str):
 
 
 def get_stat_indices(labels):
-    return {label: labels.index(label) for label in STAT_KEYS}
+    indices = {}
+    for label in STAT_KEYS:
+        if label == "3PM":
+            for candidate in ("3PT", "3PM", "3PTM"):
+                if candidate in labels:
+                    indices[label] = labels.index(candidate)
+                    break
+            continue
+        if label in labels:
+            indices[label] = labels.index(label)
+    return indices
+
+
+def parse_three_point_makes(value):
+    text = str(value or "")
+    if "-" in text:
+        try:
+            return int(text.split("-", 1)[0])
+        except ValueError:
+            return 0
+    try:
+        return int(float(text))
+    except ValueError:
+        return 0
 
 
 def build_game_entry(event, stats, stat_indices):
     opponent = event.get("opponent", {})
+    three_point_value = stats[stat_indices["3PM"]] if "3PM" in stat_indices else 0
     return {
         "Date": format_game_date(event["gameDate"]),
         "OPP": f"{event.get('atVs', '')}{opponent.get('abbreviation', '')}",
         "PTS": stats[stat_indices["PTS"]],
         "REB": stats[stat_indices["REB"]],
         "AST": stats[stat_indices["AST"]],
+        "3PM": parse_three_point_makes(three_point_value),
         "STL": stats[stat_indices["STL"]]
     }
 
