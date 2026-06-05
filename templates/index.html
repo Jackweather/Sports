@@ -57,15 +57,6 @@
             line-height: 1.4;
             min-height: 1.4em;
         }
-        #bestHitRateDisplay {
-            text-align: center;
-            font-size: 0.95rem;
-            color: #ffd600;
-            margin: -4px 0 16px 0;
-            max-width: 760px;
-            line-height: 1.4;
-            min-height: 1.4em;
-        }
         .insights-panel {
             width: min(92vw, 1200px);
             background: linear-gradient(180deg, rgba(35, 42, 52, 0.98) 0%, rgba(24, 28, 35, 0.98) 100%);
@@ -429,14 +420,7 @@
             <button id="last10Btn">Last 10</button>
             <button id="hh5Btn">Last 5 vs Opponent</button>
             <button id="hh10Btn">Last 10 vs Opponent</button>
-            <button id="bestHitRateBtn">Best Hit Rate</button>
-            <select id="bestRankSelect" aria-label="Best rank selector">
-                <option value="1">Best</option>
-                <option value="2">2nd Best</option>
-                <option value="3">3rd Best</option>
-            </select>
         </div>
-        <div id="bestHitRateDisplay"></div>
         <section id="advancedInsightsPanel" class="insights-panel" aria-live="polite">
             <div class="insights-panel-header">
                 <div>
@@ -952,12 +936,6 @@
                 </tr>
             `;
         }
-        function clearBestHitRateDisplay() {
-            const el = document.getElementById('bestHitRateDisplay');
-            if (el) {
-                el.textContent = '';
-            }
-        }
         function updateOpponentOnlyButton() {
             const button = document.getElementById('opponentOnlyBtn');
             if (button) {
@@ -1014,92 +992,6 @@
                 opponent: data.opponent,
                 opponentCode: getOpponentCode(opponentCode)
             };
-        }
-        async function fetchBestSportMatchupScenario() {
-            await fetchTeamsForSport(currentSport);
-            const sportPlayers = allPlayers.filter(player => player.sport === currentSport);
-            const statOptions = (sportConfigs[currentSport] || sportConfigs.mlb).stats;
-            const threshold = parseFloat(document.getElementById('thresholdInput')?.value || 1);
-            const results = [];
-
-            for (const player of sportPlayers) {
-                const matchup = await fetchPlayerMatchup(player.id);
-                if (!matchup || !matchup.opponentCode) {
-                    continue;
-                }
-
-                const gamesResponse = await fetch(`/api/games/${player.id}`);
-                const games = await gamesResponse.json();
-                if (!gamesResponse.ok || !Array.isArray(games)) {
-                    continue;
-                }
-
-                const opponentGames = games.filter(game => getOpponentCode(game.OPP) === matchup.opponentCode);
-                if (!opponentGames.length) {
-                    continue;
-                }
-
-                for (const statOption of statOptions) {
-                    const hits = opponentGames.reduce((count, game) => count + ((getStatValue(game, statOption.value) || 0) >= threshold ? 1 : 0), 0);
-                    const rate = hits / opponentGames.length;
-                    results.push({
-                        playerId: player.id,
-                        playerName: player.name,
-                        statValue: statOption.value,
-                        statLabel: statOption.label,
-                        opponent: matchup.opponent,
-                        opponentCode: matchup.opponentCode,
-                        hits,
-                        total: opponentGames.length,
-                        rate
-                    });
-                }
-            }
-
-            results.sort((left, right) => {
-                if (right.rate !== left.rate) {
-                    return right.rate - left.rate;
-                }
-                if (right.total !== left.total) {
-                    return right.total - left.total;
-                }
-                return right.hits - left.hits;
-            });
-
-            return results;
-        }
-        async function applyBestHitRateFilter() {
-            const rankSelect = document.getElementById('bestRankSelect');
-            const selectedRank = Math.max(1, parseInt(rankSelect?.value || '1', 10));
-            const results = await fetchBestSportMatchupScenario();
-            const result = results[selectedRank - 1];
-            const el = document.getElementById('bestHitRateDisplay');
-            if (!result) {
-                el.textContent = `No ${selectedRank}${selectedRank === 1 ? 'st' : selectedRank === 2 ? 'nd' : 'rd'} current matchup result found for this sport.`;
-                return;
-            }
-
-            currentPlayerId = result.playerId;
-            populatePlayerSelect();
-            await loadPlayerDataAndUpdate();
-
-            const statSelect = document.getElementById('statSelect');
-            const opponentSelect = document.getElementById('opponentSelect');
-            if (statSelect) {
-                statSelect.value = result.statValue;
-            }
-            if (opponentSelect && result.opponentCode) {
-                opponentSelect.value = result.opponentCode;
-            }
-
-            currentOpponent = result.opponentCode;
-            opponentOnlyMode = true;
-            updateOpponentOnlyButton();
-            applyFilter('all');
-            fetchPlayerLine();
-
-            const rankLabel = selectedRank === 1 ? 'Best' : selectedRank === 2 ? '2nd Best' : '3rd Best';
-            el.textContent = `${rankLabel} current matchup: ${result.playerName} ${result.statLabel} vs ${result.opponentCode} at ${(result.rate * 100).toFixed(0)}% (${result.hits}/${result.total}) over the current threshold.`;
         }
         function renderJudgeBarChart() {
             // Annotation plugin is already registered at script load
@@ -1202,7 +1094,6 @@
 
         document.getElementById('seasonSelect').onchange = function() {
             selectedSeason = this.value;
-            clearBestHitRateDisplay();
             renderJudgeBarChart();
             renderAdvancedInsights();
             fetchPlayerLine();
@@ -1217,7 +1108,6 @@
                 // Always show value with one decimal, but .0 as .0
                 thresholdValue.textContent = parseFloat(this.value).toFixed(1);
                 currentThresholdSourceStat = document.getElementById('statSelect')?.value || null;
-                clearBestHitRateDisplay();
                 renderJudgeBarChart();
                 renderAdvancedInsights();
             };
@@ -1278,7 +1168,6 @@
             }
             select.onchange = function() {
                 currentOpponent = getOpponentCode(this.value);
-                clearBestHitRateDisplay();
                 renderJudgeBarChart();
                 renderAdvancedInsights();
             };
@@ -1289,11 +1178,6 @@
             if (!row) {
                 return;
             }
-            const statSelect = document.getElementById('statSelect');
-            if (!statSelect) {
-                return;
-            }
-            statSelect.value = row.dataset.statValue;
             if (cell && cell.dataset.filterKey) {
                 applyFilter(cell.dataset.filterKey);
             }
@@ -1302,26 +1186,22 @@
             fetchPlayerLine();
         };
         document.getElementById('allBtn').onclick = function() {
-            clearBestHitRateDisplay(); applyFilter('all');
+            applyFilter('all');
         };
         document.getElementById('last5Btn').onclick = function() {
-            clearBestHitRateDisplay(); applyFilter('last5');
+            applyFilter('last5');
         };
         document.getElementById('last10Btn').onclick = function() {
-            clearBestHitRateDisplay(); applyFilter('last10');
+            applyFilter('last10');
         };
         document.getElementById('hh5Btn').onclick = function() {
-            clearBestHitRateDisplay(); applyFilter('hh5');
+            applyFilter('hh5');
         };
         document.getElementById('hh10Btn').onclick = function() {
-            clearBestHitRateDisplay(); applyFilter('hh10');
-        };
-        document.getElementById('bestHitRateBtn').onclick = async function() {
-            await applyBestHitRateFilter();
+            applyFilter('hh10');
         };
         document.getElementById('opponentOnlyBtn').onclick = function() {
             opponentOnlyMode = !opponentOnlyMode;
-            clearBestHitRateDisplay();
             updateOpponentOnlyButton();
             renderJudgeBarChart();
             renderAdvancedInsights();
@@ -1412,7 +1292,6 @@
             populateTeamSelect();
             playerSelect.onchange = function() {
                 currentPlayerId = this.value;
-                clearBestHitRateDisplay();
                 loadPlayerDataAndUpdate();
             };
         }
@@ -1426,7 +1305,6 @@
             const data = await res.json();
             playerName = data.player_name || '';
             currentSport = data.sport || getCurrentPlayer()?.sport || 'mlb';
-            clearBestHitRateDisplay();
             updateOpponentOnlyButton();
             populatePlayerSelect();
             updateSportUI();
