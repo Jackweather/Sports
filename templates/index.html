@@ -492,6 +492,8 @@
         let opponentOnlyMode = false;
         let selectedSeason = 'all';
         let teamsBySport = { mlb: [], nba: [] };
+        let statLineCache = {};
+        let currentThresholdSourceStat = null;
         let filteredPlayers = [];
         const filterLabels = {
             all: 'Season',
@@ -662,6 +664,66 @@
                 average,
                 baseline
             };
+        }
+        function getStatLineCacheKey(playerId, statValue) {
+            return `${playerId}:${statValue}`;
+        }
+        function getCachedStatLinePoint(playerId, statValue) {
+            const cacheKey = getStatLineCacheKey(playerId, statValue);
+            return Object.prototype.hasOwnProperty.call(statLineCache, cacheKey) ? statLineCache[cacheKey] : undefined;
+        }
+        async function fetchStatLinePoint(playerId, statValue) {
+            if (!playerId || !statValue) {
+                return null;
+            }
+
+            const cacheKey = getStatLineCacheKey(playerId, statValue);
+            if (Object.prototype.hasOwnProperty.call(statLineCache, cacheKey)) {
+                return statLineCache[cacheKey];
+            }
+
+            try {
+                const res = await fetch(`/api/player_line/${playerId}/${statValue}`);
+                const data = await res.json();
+                if (!res.ok || data.error || !data.line) {
+                    statLineCache[cacheKey] = null;
+                    return null;
+                }
+
+                const linePoint = Number(data.line.point);
+                statLineCache[cacheKey] = Number.isNaN(linePoint) ? null : linePoint;
+                return statLineCache[cacheKey];
+            } catch {
+                statLineCache[cacheKey] = null;
+                return null;
+            }
+        }
+        async function preloadPlayerStatLines(playerId) {
+            const statValues = getSportStats()
+                .map(stat => stat.value)
+                .filter(statValue => statValue !== 'PTS_REB_AST');
+
+            await Promise.all(statValues.map(statValue => fetchStatLinePoint(playerId, statValue)));
+        }
+        function getAdvancedInsightThreshold(playerId, statValue, selectedStat, currentThreshold) {
+            if (statValue === selectedStat && currentThresholdSourceStat === selectedStat) {
+                return currentThreshold;
+            }
+
+            const cachedPoint = getCachedStatLinePoint(playerId, statValue);
+            return Number.isFinite(cachedPoint) ? cachedPoint : null;
+        }
+        function formatInsightMetric(metrics) {
+            if (!metrics) {
+                return 'No line';
+            }
+            return formatRate(metrics.rate, metrics.hits, metrics.total);
+        }
+        function getInsightMetricClass(metrics) {
+            if (!metrics) {
+                return 'insight-rate-neutral';
+            }
+            return getRateClass(metrics.rate, metrics.total);
         }
         function getGamesByFilter(filterKey, opponentCode = currentOpponent, opponentOnly = opponentOnlyMode) {
             const selectedOpponent = getOpponentCode(opponentCode);
@@ -868,12 +930,14 @@
             // Build rows: for each stat key compute the recent head-to-head trend
             const rows = statKeys.map(key => {
                 const label = (sportConfigs[currentSport] && (sportConfigs[currentSport].stats || []).find(s=>s.value===key))?.label || key;
-                const h2hSeason = calculateStatMetrics(opponentGamesSeason, key, threshold);
-                const h2hHistoricLast5 = calculateStatMetrics(opponentHistoric.slice(0,5), key, threshold);
-                const h2hHistoricLast10 = calculateStatMetrics(opponentHistoric.slice(0,10), key, threshold);
+                const rowThreshold = getAdvancedInsightThreshold(currentPlayer.id, key, selectedStat, threshold);
+                const h2hSeason = rowThreshold === null ? null : calculateStatMetrics(opponentGamesSeason, key, rowThreshold);
+                const h2hHistoricLast5 = rowThreshold === null ? null : calculateStatMetrics(opponentHistoric.slice(0,5), key, rowThreshold);
+                const h2hHistoricLast10 = rowThreshold === null ? null : calculateStatMetrics(opponentHistoric.slice(0,10), key, rowThreshold);
                 return {
                     statValue: key,
                     statLabel: label,
+                    rowThreshold,
                     h2hSeason,
                     h2hHistoricLast5,
                     h2hHistoricLast10
@@ -882,23 +946,31 @@
 
             // Sort by most significant h2hSeason rate then sample size
             rows.sort((a,b)=>{
-                if (b.h2hSeason.rate !== a.h2hSeason.rate) return b.h2hSeason.rate - a.h2hSeason.rate;
-                return b.h2hSeason.total - a.h2hSeason.total;
+                const aRate = a.h2hSeason ? a.h2hSeason.rate : -1;
+                const bRate = b.h2hSeason ? b.h2hSeason.rate : -1;
+                if (bRate !== aRate) return bRate - aRate;
+                const aTotal = a.h2hSeason ? a.h2hSeason.total : -1;
+                const bTotal = b.h2hSeason ? b.h2hSeason.total : -1;
+                return bTotal - aTotal;
             });
 
             titleEl.textContent = `${currentPlayer.name} vs ${opponentCode}`;
             metaEl.textContent = `${opponentHistoric.length} total h2h games (season: ${opponentGamesSeason.length})`;
 
             // Simple summary: top stat
-            const top = rows[0];
-            summaryEl.innerHTML = `<div style="display:flex;gap:12px;flex-wrap:wrap"><div class="insight-card"><div class="insight-card-label">Top Stat</div><div class="insight-card-value">${top.statLabel}</div><div class="insight-card-detail">${formatRate(top.h2hSeason.rate, top.h2hSeason.hits, top.h2hSeason.total)}</div></div></div>`;
+            const top = rows.find(row => row.h2hSeason);
+            if (!top) {
+                summaryEl.innerHTML = '<div class="insight-card"><div class="insight-card-label">Top Stat</div><div class="insight-card-value">No line available</div><div class="insight-card-detail">No stat-specific betting lines were found for this matchup view.</div></div>';
+            } else {
+                summaryEl.innerHTML = `<div style="display:flex;gap:12px;flex-wrap:wrap"><div class="insight-card"><div class="insight-card-label">Top Stat</div><div class="insight-card-value">${top.statLabel}</div><div class="insight-card-detail">${formatRate(top.h2hSeason.rate, top.h2hSeason.hits, top.h2hSeason.total)} at line ${top.rowThreshold}</div></div></div>`;
+            }
 
             tableBody.innerHTML = rows.map(row => {
                 return `
                     <tr data-stat-value="${row.statValue}">
                         <td>${row.statLabel}</td>
-                        <td class="${getRateClass(row.h2hHistoricLast5.rate, row.h2hHistoricLast5.total)}" data-filter-key="last5">${formatRate(row.h2hHistoricLast5.rate, row.h2hHistoricLast5.hits, row.h2hHistoricLast5.total)}</td>
-                        <td class="${getRateClass(row.h2hHistoricLast10.rate, row.h2hHistoricLast10.total)}" data-filter-key="last10">${formatRate(row.h2hHistoricLast10.rate, row.h2hHistoricLast10.hits, row.h2hHistoricLast10.total)}</td>
+                        <td class="${getInsightMetricClass(row.h2hHistoricLast5)}" data-filter-key="last5">${formatInsightMetric(row.h2hHistoricLast5)}</td>
+                        <td class="${getInsightMetricClass(row.h2hHistoricLast10)}" data-filter-key="last10">${formatInsightMetric(row.h2hHistoricLast10)}</td>
                     </tr>
                 `;
             }).join('');
@@ -1167,6 +1239,7 @@
             thresholdInput.oninput = function() {
                 // Always show value with one decimal, but .0 as .0
                 thresholdValue.textContent = parseFloat(this.value).toFixed(1);
+                currentThresholdSourceStat = document.getElementById('statSelect')?.value || null;
                 clearBestHitRateDisplay();
                 renderJudgeBarChart();
                 renderAdvancedInsights();
@@ -1315,7 +1388,10 @@
                 const res = await fetch(`/api/player_line/${currentPlayerId}/${stat}`);
                 const data = await res.json();
                 if (!res.ok || data.error || !data.line) {
+                    statLineCache[getStatLineCacheKey(currentPlayerId, stat)] = null;
+                    currentThresholdSourceStat = null;
                     el.textContent = data.error || 'No line available for selected stat.';
+                    renderAdvancedInsights();
                     return;
                 }
 
@@ -1323,18 +1399,23 @@
                 const overPrice = data.line.over_price ?? '--';
                 const underPrice = data.line.under_price ?? '--';
                 const linePoint = Number(data.line.point);
+                statLineCache[getStatLineCacheKey(currentPlayerId, stat)] = Number.isNaN(linePoint) ? null : linePoint;
                 if (!Number.isNaN(linePoint) && thresholdInput && thresholdValue) {
                     if (linePoint > Number(thresholdInput.max)) {
                         thresholdInput.max = String(Math.ceil(linePoint));
                     }
                     thresholdInput.value = String(linePoint);
                     thresholdValue.textContent = linePoint.toFixed(1);
+                    currentThresholdSourceStat = stat;
                     renderJudgeBarChart();
                     renderAdvancedInsights();
                 }
                 el.textContent = `${label} line: ${data.line.point} at ${data.line.bookmaker} | O ${overPrice} / U ${underPrice}`;
             } catch {
+                statLineCache[getStatLineCacheKey(currentPlayerId, stat)] = null;
+                currentThresholdSourceStat = null;
                 el.textContent = 'Unable to load player line.';
+                renderAdvancedInsights();
             }
         }
 
@@ -1402,6 +1483,7 @@
             await fetchGamesForPlayer(currentPlayerId);
             await fetchTeamsForSport(currentSport);
             await autoSelectOpponent();
+            await preloadPlayerStatLines(currentPlayerId);
             populateOpponentSelect();
             renderJudgeBarChart();
             renderAdvancedInsights();
