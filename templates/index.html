@@ -66,6 +66,160 @@
             line-height: 1.4;
             min-height: 1.4em;
         }
+        .insights-panel {
+            width: min(92vw, 1200px);
+            background: linear-gradient(180deg, rgba(35, 42, 52, 0.98) 0%, rgba(24, 28, 35, 0.98) 100%);
+            border: 1px solid #2e3743;
+            border-radius: 18px;
+            padding: 22px;
+            margin: 0 0 22px 0;
+            box-sizing: border-box;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+        }
+        .insights-panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 18px;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+        }
+        .insights-eyebrow {
+            color: #7dd3fc;
+            font-size: 0.8rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+        .insights-title {
+            margin: 0;
+            color: #f8fafc;
+            font-size: 1.35rem;
+            line-height: 1.25;
+        }
+        .insights-meta {
+            color: #b0bec5;
+            font-size: 0.95rem;
+            line-height: 1.4;
+            text-align: right;
+        }
+        .insights-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+            margin-bottom: 18px;
+        }
+        .insight-card {
+            background: rgba(14, 19, 27, 0.72);
+            border: 1px solid #2e3743;
+            border-radius: 14px;
+            padding: 16px;
+        }
+        .insight-card-label {
+            color: #7dd3fc;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 8px;
+        }
+        .insight-card-value {
+            color: #f8fafc;
+            font-size: 1.1rem;
+            font-weight: 600;
+            line-height: 1.3;
+            margin-bottom: 6px;
+        }
+        .insight-card-detail {
+            color: #b0bec5;
+            font-size: 0.92rem;
+            line-height: 1.45;
+        }
+        .insights-table-wrap {
+            width: 100%;
+            overflow-x: auto;
+        }
+        .insights-help {
+            margin: 0 0 16px 0;
+            padding: 14px 16px;
+            background: rgba(14, 19, 27, 0.68);
+            border: 1px solid #2e3743;
+            border-radius: 14px;
+            color: #b0bec5;
+            line-height: 1.55;
+        }
+        .insights-help strong {
+            color: #f8fafc;
+            font-weight: 600;
+        }
+        .season-filter-group {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .season-select-wrap {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #b0bec5;
+        }
+        .season-select-wrap.is-hidden {
+            display: none;
+        }
+        #seasonSelect {
+            min-width: 132px;
+        }
+        .insights-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 720px;
+        }
+        .insights-table th,
+        .insights-table td {
+            padding: 12px 10px;
+            border-bottom: 1px solid #2e3743;
+            text-align: left;
+            vertical-align: top;
+        }
+        .insights-table th {
+            color: #7dd3fc;
+            font-size: 0.82rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+        .insights-table td {
+            color: #f5f6fa;
+            font-size: 0.95rem;
+        }
+        .insights-table tbody tr {
+            cursor: pointer;
+            transition: background 0.18s ease;
+        }
+        .insights-table tbody tr:hover {
+            background: rgba(125, 211, 252, 0.08);
+        }
+        .insights-table tbody tr.is-selected {
+            background: rgba(0, 230, 118, 0.12);
+        }
+        .insight-rate-strong {
+            color: #00e676;
+            font-weight: 600;
+        }
+        .insight-rate-neutral {
+            color: #f5f6fa;
+        }
+        .insight-rate-weak {
+            color: #ff8a80;
+        }
+        .insight-edge-positive {
+            color: #00e676;
+            font-weight: 600;
+        }
+        .insight-edge-negative {
+            color: #ff8a80;
+            font-weight: 600;
+        }
         #sportIndicator {
             color: #ffd600;
             border: 1px solid #ffd600;
@@ -206,6 +360,20 @@
                     width: 100%;
                     text-align: left;
                 }
+                .insights-panel {
+                    width: 100%;
+                    padding: 16px;
+                    border-radius: 14px;
+                }
+                .insights-panel-header {
+                    margin-bottom: 14px;
+                }
+                .insights-meta {
+                    text-align: left;
+                }
+                .insights-summary-grid {
+                    grid-template-columns: 1fr;
+                }
             #judgeBarChart {
                 width: 100% !important;
                 height: 48vh !important;
@@ -239,6 +407,8 @@
             <button id="nbaSportBtn">NBA</button>
         </div>
         <div class="controls-row selector-row">
+            <label for="teamSelect">Team:</label>
+            <select id="teamSelect"></select>
             <label for="playerSelect">Player:</label>
             <select id="playerSelect"></select>
             <label for="opponentSelect">Opponent:</label>
@@ -248,7 +418,13 @@
             <button id="opponentOnlyBtn" type="button">Opponent Only: Off</button>
         </div>
         <div class="controls-row filter-row">
-            <button id="allBtn" class="active">All</button>
+            <div class="season-filter-group">
+                <button id="allBtn" class="active">Season</button>
+                <div id="seasonSelectWrap" class="season-select-wrap">
+                    <label for="seasonSelect">Year:</label>
+                    <select id="seasonSelect" aria-label="Season selector"></select>
+                </div>
+            </div>
             <button id="last5Btn">Last 5</button>
             <button id="last10Btn">Last 10</button>
             <button id="hh5Btn">Last 5 vs Opponent</button>
@@ -261,6 +437,38 @@
             </select>
         </div>
         <div id="bestHitRateDisplay"></div>
+        <section id="advancedInsightsPanel" class="insights-panel" aria-live="polite">
+            <div class="insights-panel-header">
+                <div>
+                    <div class="insights-eyebrow">Advanced Matchup View</div>
+                    <h3 id="advancedInsightsTitle" class="insights-title">Best over stats vs selected opponent</h3>
+                </div>
+                <div id="advancedInsightsMeta" class="insights-meta">Choose a player and opponent to rank the strongest over trends.</div>
+            </div>
+            <div class="insights-help">
+                <strong>How to read this:</strong> the table ranks which stats are strongest against the selected opponent.
+                Last 5 Vs Opp narrows that to the five most recent meetings.
+                Last 10 Vs Opp shows the ten most recent meetings.
+                Use <strong>Season</strong> to show the full year on the chart, or switch to the shorter filters for recent form.
+            </div>
+            <div id="advancedInsightsSummary" class="insights-summary-grid"></div>
+            <div class="insights-table-wrap">
+                <table class="insights-table">
+                    <thead>
+                        <tr>
+                            <th>Stat</th>
+                            <th>Last 5 Vs Opp</th>
+                            <th>Last 10 Vs Opp</th>
+                        </tr>
+                    </thead>
+                    <tbody id="advancedInsightsTableBody">
+                        <tr>
+                            <td colspan="3">Loading matchup insights...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
         <div class="threshold-row">
             <div class="threshold-controls">
                 <label for="thresholdInput" style="color:#ffd600; font-size:1.05rem;">Threshold:</label>
@@ -282,10 +490,11 @@
         let currentOpponent = '';
         let currentSport = 'mlb';
         let opponentOnlyMode = false;
+        let selectedSeason = 'all';
         let teamsBySport = { mlb: [], nba: [] };
         let filteredPlayers = [];
         const filterLabels = {
-            all: 'All',
+            all: 'Season',
             last5: 'Last 5',
             last10: 'Last 10',
             hh5: 'Last 5 vs Opponent',
@@ -308,6 +517,7 @@
                     { value: 'PTS', label: 'Points' },
                     { value: 'REB', label: 'Rebounds' },
                     { value: 'AST', label: 'Assists' },
+                            { value: 'PTS_REB_AST', label: 'PTS+REB+AST' },
                     { value: 'STL', label: 'Steals' }
                 ]
             }
@@ -317,8 +527,164 @@
         function getOpponentCode(opp) {
             return String(opp || '').replace(/^(@|vs)\s*/, '');
         }
+        function getStatValue(game, statValue) {
+            if (!game) return 0;
+            if (statValue === 'PTS_REB_AST') {
+                const pts = parseFloat(game.PTS) || parseFloat(game.PTS_TRAD) || 0;
+                const reb = parseFloat(game.REB) || parseFloat(game.REB_TRAD) || 0;
+                const ast = parseFloat(game.AST) || parseFloat(game.AST_TRAD) || 0;
+                return pts + reb + ast;
+            }
+            return parseFloat(game[statValue]) || 0;
+        }
         function getSportTeams() {
             return teamsBySport[currentSport] || [];
+        }
+        function getSportStats() {
+            return (sportConfigs[currentSport] || sportConfigs.mlb).stats;
+        }
+        function parseGameDate(value) {
+            const parsed = new Date(value);
+            return Number.isNaN(parsed.getTime()) ? null : parsed;
+        }
+        function getGameSeason(game) {
+            const explicitSeason = game.SEASON || game.season || game.Season;
+            if (explicitSeason) {
+                return String(explicitSeason);
+            }
+
+            const parsedDate = parseGameDate(game.Date);
+            if (!parsedDate) {
+                return 'Unknown';
+            }
+
+            const year = parsedDate.getFullYear();
+            if (currentSport === 'mlb') {
+                return String(year);
+            }
+
+            const month = parsedDate.getMonth() + 1;
+            if (month >= 10) {
+                return `${year}-${String(year + 1).slice(-2)}`;
+            }
+            return `${year - 1}-${String(year).slice(-2)}`;
+        }
+        function getSeasonSortValue(season) {
+            if (/^\d{4}-\d{2}$/.test(season)) {
+                return parseInt(season.slice(0, 4), 10);
+            }
+            if (/^\d{4}$/.test(season)) {
+                return parseInt(season, 10);
+            }
+            return -1;
+        }
+        function getAvailableSeasons() {
+            return Array.from(new Set(allGames.map(game => game.__season).filter(Boolean))).sort((left, right) => getSeasonSortValue(right) - getSeasonSortValue(left));
+        }
+        function getSeasonScopedGames() {
+            if (selectedSeason === 'all') {
+                return allGames;
+            }
+            return allGames.filter(game => game.__season === selectedSeason);
+        }
+        function updateSeasonFilterUI() {
+            const seasonSelectWrap = document.getElementById('seasonSelectWrap');
+            const seasonSelect = document.getElementById('seasonSelect');
+            if (!seasonSelectWrap || !seasonSelect) {
+                return;
+            }
+
+            const seasons = getAvailableSeasons();
+            if (!seasons.length) {
+                seasonSelectWrap.classList.add('is-hidden');
+                seasonSelect.innerHTML = '';
+                selectedSeason = 'all';
+                return;
+            }
+
+            seasonSelect.innerHTML = ['<option value="all">All Seasons</option>']
+                .concat(seasons.map(season => `<option value="${season}">${season}</option>`))
+                .join('');
+
+            if (selectedSeason !== 'all' && !seasons.includes(selectedSeason)) {
+                selectedSeason = seasons[0];
+            }
+            if (selectedSeason === 'all' && seasons.length === 1) {
+                selectedSeason = seasons[0];
+            }
+            seasonSelect.value = selectedSeason;
+        }
+        function formatRate(rate, hits, total) {
+            if (!total) {
+                return 'No sample';
+            }
+            return `${(rate * 100).toFixed(0)}% (${hits}/${total})`;
+        }
+        function formatAverage(value) {
+            return Number.isFinite(value) ? value.toFixed(2) : '--';
+        }
+        function getRateClass(rate, total) {
+            if (!total) {
+                return 'insight-rate-neutral';
+            }
+            if (rate >= 0.6) {
+                return 'insight-rate-strong';
+            }
+            if (rate < 0.4) {
+                return 'insight-rate-weak';
+            }
+            return 'insight-rate-neutral';
+        }
+        function getEdgeClass(edge) {
+            return edge >= 0 ? 'insight-edge-positive' : 'insight-edge-negative';
+        }
+        function calculateStatMetrics(games, statValue, threshold) {
+            const values = games.map(game => getStatValue(game, statValue));
+            const hits = values.reduce((count, value) => count + (value >= threshold ? 1 : 0), 0);
+            const total = values.length;
+            const average = total ? values.reduce((sum, value) => sum + value, 0) / total : 0;
+            return {
+                hits,
+                total,
+                rate: total ? hits / total : 0,
+                average
+            };
+        }
+        function calculateRateAgainstBaseline(games, statValue, baseline) {
+            const values = games.map(game => getStatValue(game, statValue));
+            const hits = values.reduce((count, value) => count + (value >= baseline ? 1 : 0), 0);
+            const total = values.length;
+            const average = total ? values.reduce((sum, value) => sum + value, 0) / total : 0;
+            return {
+                hits,
+                total,
+                rate: total ? hits / total : 0,
+                average,
+                baseline
+            };
+        }
+        function getGamesByFilter(filterKey, opponentCode = currentOpponent, opponentOnly = opponentOnlyMode) {
+            const selectedOpponent = getOpponentCode(opponentCode);
+            const seasonGames = getSeasonScopedGames();
+            const baseGames = opponentOnly
+                ? seasonGames.filter(game => getOpponentCode(game.OPP) === selectedOpponent)
+                : seasonGames;
+            switch (filterKey) {
+                case 'all':
+                    return baseGames;
+                case 'last5':
+                    return baseGames.slice(0, 5);
+                case 'last10':
+                    return baseGames.slice(0, 10);
+                case 'hh5':
+                    // head-to-head recent meetings should ignore selected season and use all historical games
+                    return allGames.filter(game => getOpponentCode(game.OPP) === selectedOpponent).slice(0, 5);
+                case 'hh10':
+                    // head-to-head recent meetings should ignore selected season and use all historical games
+                    return allGames.filter(game => getOpponentCode(game.OPP) === selectedOpponent).slice(0, 10);
+                default:
+                    return baseGames;
+            }
         }
         function updateSportUI() {
             const sportConfig = sportConfigs[currentSport] || sportConfigs.mlb;
@@ -330,17 +696,81 @@
             document.getElementById('nbaSportBtn').classList.toggle('active', currentSport === 'nba');
             statSelect.onchange = function() {
                 renderJudgeBarChart();
+                renderAdvancedInsights();
                 fetchPlayerLine();
             };
         }
         function populatePlayerSelect() {
             const playerSelect = document.getElementById('playerSelect');
-            filteredPlayers = allPlayers.filter(player => player.sport === currentSport);
-            playerSelect.innerHTML = filteredPlayers.map(player => `<option value="${player.id}">${player.name}</option>`).join('');
-            if (!filteredPlayers.some(player => player.id === currentPlayerId)) {
-                currentPlayerId = filteredPlayers[0]?.id || null;
+            const playersForSport = allPlayers.filter(player => player.sport === currentSport);
+            const teamsForPlayers = Array.from(new Set(playersForSport.map(p => p.team_abbr).filter(Boolean)));
+            let teams = (teamsBySport[currentSport] || []).filter(t => teamsForPlayers.includes(t.abbreviation));
+            // Restrict visible teams per user request: MLB -> Yankees only; NBA -> Knicks + Spurs
+            if (currentSport === 'mlb') {
+                teams = teams.filter(t => t.abbreviation === 'NYY');
+            } else if (currentSport === 'nba') {
+                teams = teams.filter(t => ['NY', 'SA'].includes(t.abbreviation));
+            }
+
+            let html = '';
+            teams.forEach(team => {
+                const teamPlayers = playersForSport.filter(p => p.team_abbr === team.abbreviation);
+                if (teamPlayers.length === 0) return;
+                html += `<optgroup label="${team.abbreviation} - ${team.name}">` + teamPlayers.map(p => `<option value="${p.id}">${p.name}</option>`).join('') + `</optgroup>`;
+            });
+
+            // Add any players without a mapped team under 'Other'
+            const otherPlayers = playersForSport.filter(p => !p.team_abbr || !teams.find(t => t.abbreviation === p.team_abbr));
+            if (otherPlayers.length) {
+                html += `<optgroup label="Other">` + otherPlayers.map(p => `<option value="${p.id}">${p.name}</option>`).join('') + `</optgroup>`;
+            }
+
+            playerSelect.innerHTML = html || '<option value="">No players available</option>';
+            if (!playersForSport.some(player => player.id === currentPlayerId)) {
+                currentPlayerId = playersForSport[0]?.id || null;
             }
             playerSelect.value = currentPlayerId;
+        }
+
+        function populatePlayerSelectForTeam(teamAbbr) {
+            const playerSelect = document.getElementById('playerSelect');
+            const playersForSport = allPlayers.filter(player => player.sport === currentSport);
+            if (!teamAbbr || teamAbbr === 'all') {
+                // fallback to grouped view
+                populatePlayerSelect();
+                return;
+            }
+            const teamPlayers = playersForSport.filter(p => p.team_abbr === teamAbbr);
+            playerSelect.innerHTML = teamPlayers.map(p => `<option value="${p.id}">${p.name}</option>`).join('') || '<option value="">No players available</option>';
+            if (!teamPlayers.some(player => player.id === currentPlayerId)) {
+                currentPlayerId = teamPlayers[0]?.id || null;
+            }
+            playerSelect.value = currentPlayerId;
+        }
+
+        function populateTeamSelect() {
+            const teamSelect = document.getElementById('teamSelect');
+            const playersForSport = allPlayers.filter(player => player.sport === currentSport);
+            const teamsForPlayers = Array.from(new Set(playersForSport.map(p => p.team_abbr).filter(Boolean)));
+            let teams = (teamsBySport[currentSport] || []).filter(t => teamsForPlayers.includes(t.abbreviation));
+            if (currentSport === 'mlb') {
+                teams = teams.filter(t => t.abbreviation === 'NYY');
+            } else if (currentSport === 'nba') {
+                teams = teams.filter(t => ['NY', 'SA'].includes(t.abbreviation));
+            }
+            let html = '<option value="">Select Team</option>' + teams.map(t => `<option value="${t.abbreviation}">${t.abbreviation} - ${t.name}</option>`).join('');
+            teamSelect.innerHTML = html || '<option value="">No teams</option>';
+            teamSelect.onchange = function() {
+                populatePlayerSelectForTeam(this.value);
+            };
+            // auto-select first team if none selected
+            const first = teams[0]?.abbreviation || '';
+            if (first) {
+                teamSelect.value = first;
+                populatePlayerSelectForTeam(first);
+            } else {
+                populatePlayerSelectForTeam('');
+            }
         }
         async function switchSport(sport) {
             if (currentSport === sport && currentPlayerId) {
@@ -348,31 +778,15 @@
             }
             currentSport = sport;
             currentOpponent = '';
-            populatePlayerSelect();
+            await fetchTeamsForSport(currentSport);
+            populateTeamSelect();
             updateSportUI();
             if (currentPlayerId) {
                 await loadPlayerDataAndUpdate();
             }
         }
         function getFilteredGamesForChart() {
-            const selectedOpponent = getOpponentCode(currentOpponent);
-            const baseGames = opponentOnlyMode
-                ? allGames.filter(g => getOpponentCode(g.OPP) === selectedOpponent)
-                : allGames;
-            switch (currentChartFilter) {
-                case 'all':
-                    return baseGames;
-                case 'last5':
-                    return baseGames.slice(0, 5);
-                case 'last10':
-                    return baseGames.slice(0, 10);
-                case 'hh5':
-                    return allGames.filter(g => getOpponentCode(g.OPP) === selectedOpponent).slice(0, 5);
-                case 'hh10':
-                    return allGames.filter(g => getOpponentCode(g.OPP) === selectedOpponent).slice(0, 10);
-                default:
-                    return baseGames;
-            }
+            return getGamesByFilter(currentChartFilter, currentOpponent, opponentOnlyMode);
         }
         function getGamesForFilter(filterKey) {
             const previousFilter = currentChartFilter;
@@ -382,20 +796,9 @@
             return games;
         }
         function getGamesForScenario(filterKey, opponentCode, opponentOnly, statValue) {
-            const previousFilter = currentChartFilter;
-            const previousOpponent = currentOpponent;
-            const previousOpponentOnlyMode = opponentOnlyMode;
-
-            currentChartFilter = filterKey;
-            currentOpponent = opponentCode;
-            opponentOnlyMode = opponentOnly;
-
-            const games = getFilteredGamesForChart();
-            const hits = games.reduce((count, game) => count + ((parseFloat(game[statValue]) || 0) >= parseFloat(document.getElementById('thresholdInput')?.value || 1) ? 1 : 0), 0);
-
-            currentChartFilter = previousFilter;
-            currentOpponent = previousOpponent;
-            opponentOnlyMode = previousOpponentOnlyMode;
+            const games = getGamesByFilter(filterKey, opponentCode, opponentOnly);
+            const threshold = parseFloat(document.getElementById('thresholdInput')?.value || 1);
+            const hits = games.reduce((count, game) => count + ((getStatValue(game, statValue) || 0) >= threshold ? 1 : 0), 0);
 
             return {
                 games,
@@ -403,6 +806,103 @@
                 total: games.length,
                 rate: games.length ? hits / games.length : 0
             };
+        }
+        function buildInsightCard(label, title, detail) {
+            return `
+                <article class="insight-card">
+                    <div class="insight-card-label">${label}</div>
+                    <div class="insight-card-value">${title}</div>
+                    <div class="insight-card-detail">${detail}</div>
+                </article>
+            `;
+        }
+        function renderAdvancedInsights() {
+            const titleEl = document.getElementById('advancedInsightsTitle');
+            const metaEl = document.getElementById('advancedInsightsMeta');
+            const summaryEl = document.getElementById('advancedInsightsSummary');
+            const tableBody = document.getElementById('advancedInsightsTableBody');
+            const statSelect = document.getElementById('statSelect');
+            const selectedStat = statSelect ? statSelect.value : '';
+            const opponentCode = getOpponentCode(currentOpponent);
+            const currentPlayer = getCurrentPlayer();
+
+            if (!currentPlayer || !allGames.length || !opponentCode) {
+                titleEl.textContent = 'Matchup: select a player and opponent';
+                metaEl.textContent = '';
+                summaryEl.innerHTML = '';
+                tableBody.innerHTML = '<tr><td colspan="3">No opponent matchup data available.</td></tr>';
+                return;
+            }
+
+            const seasonGames = getSeasonScopedGames();
+            const opponentGamesSeason = seasonGames.filter(game => getOpponentCode(game.OPP) === opponentCode);
+            // historic h2h across all data (not season-scoped)
+            const opponentHistoric = allGames.filter(game => getOpponentCode(game.OPP) === opponentCode);
+
+            // derive stat keys directly from player's game objects (use seasonGames as sample)
+            function getPlayerStatKeys() {
+                const sample = (seasonGames && seasonGames.length) ? seasonGames[0] : (allGames[0] || {});
+                const exclude = new Set(['Date', 'OPP', 'Location', 'homeAway', 'SEASON', 'season', 'Season']);
+                const keys = [];
+                for (const k in sample) {
+                    if (exclude.has(k)) continue;
+                    // include numeric-like keys
+                    const v = sample[k];
+                    if (v === null || v === undefined) continue;
+                    if (typeof v === 'number') {
+                        keys.push(k);
+                    } else if (!isNaN(parseFloat(v)) && isFinite(v)) {
+                        keys.push(k);
+                    }
+                }
+                return keys;
+            }
+
+            const statKeys = getPlayerStatKeys();
+            if (!statKeys.length) {
+                tableBody.innerHTML = '<tr><td colspan="3">No numeric stats found in player data.</td></tr>';
+                return;
+            }
+
+            // Build rows: for each stat key compute the recent head-to-head trend
+            const rows = statKeys.map(key => {
+                const label = (sportConfigs[currentSport] && (sportConfigs[currentSport].stats || []).find(s=>s.value===key))?.label || key;
+                const seasonAvg = calculateStatMetrics(seasonGames, key, 0).average;
+                const h2hSeason = calculateRateAgainstBaseline(opponentGamesSeason, key, seasonAvg);
+                const h2hHistoricLast5 = calculateRateAgainstBaseline(opponentHistoric.slice(0,5), key, seasonAvg);
+                const h2hHistoricLast10 = calculateRateAgainstBaseline(opponentHistoric.slice(0,10), key, seasonAvg);
+                return {
+                    statValue: key,
+                    statLabel: label,
+                    h2hSeason,
+                    h2hHistoricLast5,
+                    h2hHistoricLast10,
+                    seasonBaseline: { average: seasonAvg }
+                };
+            });
+
+            // Sort by most significant h2hSeason rate then sample size
+            rows.sort((a,b)=>{
+                if (b.h2hSeason.rate !== a.h2hSeason.rate) return b.h2hSeason.rate - a.h2hSeason.rate;
+                return b.h2hSeason.total - a.h2hSeason.total;
+            });
+
+            titleEl.textContent = `${currentPlayer.name} vs ${opponentCode}`;
+            metaEl.textContent = `${opponentHistoric.length} total h2h games (season: ${opponentGamesSeason.length})`;
+
+            // Simple summary: top stat
+            const top = rows[0];
+            summaryEl.innerHTML = `<div style="display:flex;gap:12px;flex-wrap:wrap"><div class="insight-card"><div class="insight-card-label">Top Stat</div><div class="insight-card-value">${top.statLabel}</div><div class="insight-card-detail">${formatRate(top.h2hSeason.rate, top.h2hSeason.hits, top.h2hSeason.total)}</div></div></div>`;
+
+            tableBody.innerHTML = rows.map(row => {
+                return `
+                    <tr data-stat-value="${row.statValue}">
+                        <td>${row.statLabel}</td>
+                        <td class="${getRateClass(row.h2hHistoricLast5.rate, row.h2hHistoricLast5.total)}" data-filter-key="last5">${formatRate(row.h2hHistoricLast5.rate, row.h2hHistoricLast5.hits, row.h2hHistoricLast5.total)}</td>
+                        <td class="${getRateClass(row.h2hHistoricLast10.rate, row.h2hHistoricLast10.total)}" data-filter-key="last10">${formatRate(row.h2hHistoricLast10.rate, row.h2hHistoricLast10.hits, row.h2hHistoricLast10.total)}</td>
+                    </tr>
+                `;
+            }).join('');
         }
         function clearBestHitRateDisplay() {
             const el = document.getElementById('bestHitRateDisplay');
@@ -438,7 +938,9 @@
         function applyFilter(filterKey) {
             currentChartFilter = filterKey;
             setActiveFilterButton(filterKey);
+            updateSeasonFilterUI();
             renderJudgeBarChart();
+            renderAdvancedInsights();
         }
         async function fetchPlayerMatchup(playerId) {
             let response = await fetch(`/api/current_game/${playerId}`);
@@ -490,7 +992,7 @@
                 }
 
                 for (const statOption of statOptions) {
-                    const hits = opponentGames.reduce((count, game) => count + ((parseFloat(game[statOption.value]) || 0) >= threshold ? 1 : 0), 0);
+                    const hits = opponentGames.reduce((count, game) => count + ((getStatValue(game, statOption.value) || 0) >= threshold ? 1 : 0), 0);
                     const rate = hits / opponentGames.length;
                     results.push({
                         playerId: player.id,
@@ -555,9 +1057,10 @@
             // Annotation plugin is already registered at script load
             const stat = document.getElementById('statSelect') ? document.getElementById('statSelect').value : 'H';
             const statLabels = Object.fromEntries((sportConfigs[currentSport] || sportConfigs.mlb).stats.map(statOption => [statOption.value, statOption.label]));
-            let games = getFilteredGamesForChart().slice(0, 10).reverse();
+            const filteredGames = getFilteredGamesForChart();
+            const games = (currentChartFilter === 'all' ? filteredGames : filteredGames.slice(0, 10)).reverse();
             const labels = games.map(g => g.Date);
-            const dataArr = games.map(g => parseInt(g[stat], 10) || 0);
+            const dataArr = games.map(g => getStatValue(g, stat) || 0);
             // Calculate average for the stat (ignore NaN/undefined)
             const validVals = dataArr.filter(v => typeof v === 'number' && !isNaN(v));
             const avg = validVals.length > 0 ? (validVals.reduce((a, b) => a + b, 0) / validVals.length) : 0;
@@ -649,6 +1152,14 @@
             });
         }
 
+        document.getElementById('seasonSelect').onchange = function() {
+            selectedSeason = this.value;
+            clearBestHitRateDisplay();
+            renderJudgeBarChart();
+            renderAdvancedInsights();
+            fetchPlayerLine();
+        };
+
 
         // Threshold slider event
         const thresholdInput = document.getElementById('thresholdInput');
@@ -659,6 +1170,7 @@
                 thresholdValue.textContent = parseFloat(this.value).toFixed(1);
                 clearBestHitRateDisplay();
                 renderJudgeBarChart();
+                renderAdvancedInsights();
             };
             // Set initial display value
             thresholdValue.textContent = parseFloat(thresholdInput.value).toFixed(1);
@@ -719,8 +1231,27 @@
                 currentOpponent = getOpponentCode(this.value);
                 clearBestHitRateDisplay();
                 renderJudgeBarChart();
+                renderAdvancedInsights();
             };
         }
+        document.getElementById('advancedInsightsTableBody').onclick = function(event) {
+            const cell = event.target.closest('td[data-filter-key]');
+            const row = event.target.closest('tr[data-stat-value]');
+            if (!row) {
+                return;
+            }
+            const statSelect = document.getElementById('statSelect');
+            if (!statSelect) {
+                return;
+            }
+            statSelect.value = row.dataset.statValue;
+            if (cell && cell.dataset.filterKey) {
+                applyFilter(cell.dataset.filterKey);
+            }
+            renderJudgeBarChart();
+            renderAdvancedInsights();
+            fetchPlayerLine();
+        };
         document.getElementById('allBtn').onclick = function() {
             clearBestHitRateDisplay(); applyFilter('all');
         };
@@ -744,6 +1275,7 @@
             clearBestHitRateDisplay();
             updateOpponentOnlyButton();
             renderJudgeBarChart();
+            renderAdvancedInsights();
         };
         async function fetchCurrentGame() {
             const el = document.getElementById('currentYankeesGame');
@@ -818,7 +1350,8 @@
             currentSport = 'mlb';
             opponentOnlyMode = false;
             updateOpponentOnlyButton();
-            populatePlayerSelect();
+            await fetchTeamsForSport(currentSport);
+            populateTeamSelect();
             playerSelect.onchange = function() {
                 currentPlayerId = this.value;
                 clearBestHitRateDisplay();
@@ -849,7 +1382,13 @@
 
         async function fetchGamesForPlayer(playerId) {
             const res = await fetch(`/api/games/${playerId}`);
-            allGames = await res.json();
+            const games = await res.json();
+            allGames = Array.isArray(games)
+                ? games.map(game => ({ ...game, __season: getGameSeason(game) }))
+                : [];
+            const seasons = getAvailableSeasons();
+            selectedSeason = seasons[0] || 'all';
+            updateSeasonFilterUI();
         }
 
         async function loadPlayerDataAndUpdate() {
@@ -865,6 +1404,7 @@
             await autoSelectOpponent();
             populateOpponentSelect();
             renderJudgeBarChart();
+            renderAdvancedInsights();
             fetchCurrentGame();
             fetchPlayerLine();
         }
