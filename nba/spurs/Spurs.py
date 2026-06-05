@@ -38,6 +38,11 @@ PLAYERS = [
         "name": "De'Aaron Fox",
         "espn_id": 4066259,
         "output": "deaaron_fox.json"
+    },
+    {
+        "name": "Keldon Johnson",
+        "espn_id": 4395723,
+        "output": "keldon_johnson.json"
     }
 ]
 BASE_URL = "https://site.api.espn.com/apis/common/v3/sports/basketball/nba/athletes/{}/gamelog?season={}"
