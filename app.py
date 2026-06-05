@@ -5,6 +5,7 @@ import os
 import requests
 import subprocess
 import threading
+import time
 import traceback
 
 app = Flask(__name__)
@@ -19,8 +20,13 @@ YANKEES_SCRIPT = os.path.join(APP_DIR, 'mlb', 'yankees', 'Yankees.py')
 BRUNSON_SCRIPT = os.path.join(APP_DIR, 'nba', 'knicks', 'JalenBrunson.py')
 SPURS_SCRIPT = os.path.join(APP_DIR, 'nba', 'spurs', 'Spurs.py')
 RUN_TASK_LOCK = threading.Lock()
+ODDS_CACHE_LOCK = threading.Lock()
 ODDS_API_BASE_URL = 'https://api.the-odds-api.com/v4'
 ODDS_API_KEY = os.getenv('THE_ODDS_API_KEY', '364de355ee9806aa403b7c954d539459')
+ODDS_EVENTS_CACHE_TTL_SECONDS = int(os.getenv('ODDS_EVENTS_CACHE_TTL_SECONDS', '900'))
+ODDS_MARKET_CACHE_TTL_SECONDS = int(os.getenv('ODDS_MARKET_CACHE_TTL_SECONDS', '300'))
+ODDS_EVENTS_CACHE = {}
+ODDS_MARKET_CACHE = {}
 SPORT_ODDS_KEYS = {
     'mlb': 'baseball_mlb',
     'nba': 'basketball_nba'
@@ -238,6 +244,38 @@ def get_prop_market(player, stat):
     return PLAYER_PROP_MARKETS.get(player['sport'], {}).get(stat)
 
 
+def get_cached_value(cache, cache_key):
+    now = time.time()
+    with ODDS_CACHE_LOCK:
+        entry = cache.get(cache_key)
+        if not entry:
+            return None
+        if entry['expires_at'] <= now:
+            cache.pop(cache_key, None)
+            return None
+        return entry['value']
+
+
+def set_cached_value(cache, cache_key, value, ttl_seconds):
+    with ODDS_CACHE_LOCK:
+        cache[cache_key] = {
+            'value': value,
+            'expires_at': time.time() + ttl_seconds
+        }
+
+
+def fetch_odds_api_json(url, params, cache, cache_key, ttl_seconds):
+    cached_value = get_cached_value(cache, cache_key)
+    if cached_value is not None:
+        return cached_value
+
+    response = requests.get(url, params=params, timeout=30)
+    response.raise_for_status()
+    payload = response.json()
+    set_cached_value(cache, cache_key, payload, ttl_seconds)
+    return payload
+
+
 def find_event_for_player(player, game_info):
     if not ODDS_API_KEY:
         raise RuntimeError('THE_ODDS_API_KEY is not configured.')
@@ -246,17 +284,18 @@ def find_event_for_player(player, game_info):
     if not sport_key or not game_info:
         return None
 
-    response = requests.get(
+    events = fetch_odds_api_json(
         f'{ODDS_API_BASE_URL}/sports/{sport_key}/events',
-        params={'apiKey': ODDS_API_KEY},
-        timeout=30
+        {'apiKey': ODDS_API_KEY},
+        ODDS_EVENTS_CACHE,
+        ('events', sport_key),
+        ODDS_EVENTS_CACHE_TTL_SECONDS
     )
-    response.raise_for_status()
 
     team_name = get_player_team_name(player)
     opponent_name = game_info.get('opponent')
     home_away = game_info.get('homeAway')
-    for event in response.json():
+    for event in events:
         home_team = event.get('home_team')
         away_team = event.get('away_team')
         if home_away == 'Home' and home_team == team_name and away_team == opponent_name:
@@ -328,18 +367,18 @@ def fetch_player_prop_lines(player_id, stat):
         if not event:
             return {'error': 'No matching event found in odds feed.'}, 404
 
-        response = requests.get(
+        odds_data = fetch_odds_api_json(
             f"{ODDS_API_BASE_URL}/sports/{SPORT_ODDS_KEYS[player['sport']]}/events/{event['id']}/odds",
-            params={
+            {
                 'apiKey': ODDS_API_KEY,
                 'regions': 'us',
                 'markets': market,
                 'oddsFormat': 'american'
             },
-            timeout=30
+            ODDS_MARKET_CACHE,
+            ('event-odds', player['sport'], event['id'], market, 'us', 'american'),
+            ODDS_MARKET_CACHE_TTL_SECONDS
         )
-        response.raise_for_status()
-        odds_data = response.json()
         lines = extract_player_lines(odds_data, player['name'], market)
         if not lines:
             return {'error': 'No prop line available for this player/stat.'}, 404
