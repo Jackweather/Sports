@@ -134,6 +134,12 @@ PLAYERS = [
         'file': player_file('nba', 'josh_hart.json')
     },
     {
+        'id': 'landry_shamet',
+        'name': 'Landry Shamet',
+        'sport': 'nba',
+        'file': os.path.join(NBA_DATA_DIR, 'landry_shamet.json')
+    },
+    {
         'id': 'victor_wembanyama',
         'name': 'Victor Wembanyama',
         'sport': 'nba',
@@ -168,6 +174,12 @@ PLAYERS = [
         'name': "De'Aaron Fox",
         'sport': 'nba',
         'file': os.path.join(SPURS_DATA_DIR, 'deaaron_fox.json')
+    },
+    {
+        'id': 'keldon_johnson',
+        'name': 'Keldon Johnson',
+        'sport': 'nba',
+        'file': os.path.join(SPURS_DATA_DIR, 'keldon_johnson.json')
     }
     
 ]
@@ -445,7 +457,19 @@ def run_task1():
 # List all available players
 @app.route('/api/players')
 def api_players():
-    return jsonify([{'id': p['id'], 'name': p['name'], 'sport': p['sport']} for p in PLAYERS])
+    players_out = []
+    for p in PLAYERS:
+        team_name = get_player_team_name(p)
+        team_abbr = None
+        try:
+            for team in load_teams_for_sport(p['sport']):
+                if team.get('name') == team_name:
+                    team_abbr = team.get('abbreviation')
+                    break
+        except Exception:
+            team_abbr = None
+        players_out.append({'id': p['id'], 'name': p['name'], 'sport': p['sport'], 'team_abbr': team_abbr})
+    return jsonify(players_out)
 
 # Get games for a specific player
 
