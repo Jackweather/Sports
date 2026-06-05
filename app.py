@@ -43,6 +43,7 @@ PLAYER_PROP_MARKETS = {
         'PTS': 'player_points',
         'REB': 'player_rebounds',
         'AST': 'player_assists',
+        '3PM': 'player_threes',
         'STL': 'player_steals'
     }
 }
