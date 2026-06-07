@@ -752,12 +752,18 @@
         }
         function populatePlayerSelect() {
             const playerSelect = document.getElementById('playerSelect');
+            const teamSelectEl = document.getElementById('teamSelect');
+            const selectedTeam = teamSelectEl ? teamSelectEl.value : '';
+            if (selectedTeam) {
+                populatePlayerSelectForTeam(selectedTeam);
+                return;
+            }
             const playersForSport = allPlayers.filter(player => player.sport === currentSport);
             const teamsForPlayers = Array.from(new Set(playersForSport.map(p => p.team_abbr).filter(Boolean)));
             let teams = (teamsBySport[currentSport] || []).filter(t => teamsForPlayers.includes(t.abbreviation));
-            // Restrict visible teams per user request: MLB -> Yankees + Red Sox; NBA -> Knicks + Spurs
-            if (currentSport === 'mlb') {
-                teams = teams.filter(t => ['NYY', 'BOS'].includes(t.abbreviation));
+            // Restrict visible teams per user request: MLB -> Yankees + Red Sox + Guardians + Rangers; NBA -> Knicks + Spurs
+                if (currentSport === 'mlb') {
+                teams = teams.filter(t => ['NYY', 'BOS', 'CLE', 'TEX', 'LAD'].includes(t.abbreviation));
             } else if (currentSport === 'nba') {
                 teams = teams.filter(t => ['NY', 'SA'].includes(t.abbreviation));
             }
@@ -804,7 +810,7 @@
             const teamsForPlayers = Array.from(new Set(playersForSport.map(p => p.team_abbr).filter(Boolean)));
             let teams = (teamsBySport[currentSport] || []).filter(t => teamsForPlayers.includes(t.abbreviation));
             if (currentSport === 'mlb') {
-                teams = teams.filter(t => ['NYY', 'BOS'].includes(t.abbreviation));
+                teams = teams.filter(t => ['NYY', 'BOS', 'CLE', 'TEX', 'LAD'].includes(t.abbreviation));
             } else if (currentSport === 'nba') {
                 teams = teams.filter(t => ['NY', 'SA'].includes(t.abbreviation));
             }
