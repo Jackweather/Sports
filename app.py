@@ -13,6 +13,9 @@ BASE_DIR = '/var/data'
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 MLB_DATA_DIR = os.path.join(BASE_DIR, 'mlb', 'yankees')
 RED_SOX_DATA_DIR = os.path.join(BASE_DIR, 'mlb', 'red_sox')
+GUARDIANS_DATA_DIR = os.path.join(BASE_DIR, 'mlb', 'guardians')
+RANGERS_DATA_DIR = os.path.join(BASE_DIR, 'mlb', 'rangers')
+DODGERS_DATA_DIR = os.path.join(BASE_DIR, 'mlb', 'dodgers')
 NBA_DATA_DIR = os.path.join(BASE_DIR, 'nba', 'knicks')
 SPURS_DATA_DIR = os.path.join(BASE_DIR, 'nba', 'spurs')
 MLB_TEAMS_PATH = os.path.join(APP_DIR, 'mlb_teams.json')
@@ -21,6 +24,8 @@ YANKEES_SCRIPT = os.path.join(APP_DIR, 'mlb', 'yankees', 'Yankees.py')
 RED_SOX_SCRIPT = os.path.join(APP_DIR, 'mlb', 'red_sox', 'RedSox.py')
 BRUNSON_SCRIPT = os.path.join(APP_DIR, 'nba', 'knicks', 'JalenBrunson.py')
 SPURS_SCRIPT = os.path.join(APP_DIR, 'nba', 'spurs', 'Spurs.py')
+RANGERS_SCRIPT = os.path.join(APP_DIR, 'mlb', 'rangers', 'Rangers.py')
+DODGERS_SCRIPT = os.path.join(APP_DIR, 'mlb', 'dodgers', 'Dodgers.py')
 RUN_TASK_LOCK = threading.Lock()
 ODDS_CACHE_LOCK = threading.Lock()
 ODDS_API_BASE_URL = 'https://api.the-odds-api.com/v4'
@@ -62,6 +67,33 @@ def player_file(sport, filename):
         'isiah_kiner_falefa.json'
     }:
         return os.path.join(RED_SOX_DATA_DIR, filename)
+    if filename in {
+        'daniel_schneemann.json',
+        'brayan_rocchio.json',
+        'jose_ramirez.json',
+        'chase_delauter.json',
+        'kyle_manzardo.json'
+    }:
+        return os.path.join(GUARDIANS_DATA_DIR, filename)
+    if filename in {
+        'corey_seager.json',
+        'josh_jung.json',
+        'brandon_nimmo.json',
+        'joc_pederson.json',
+        'kyle_higashioka.json',
+        'wyatt_langford.json'
+    }:
+        return os.path.join(RANGERS_DATA_DIR, filename)
+    if filename in {
+        'shohei_ohtani.json',
+        'andy_pages.json',
+        'freddie_freeman.json',
+        'mookie_betts.json',
+        'max_muncy.json',
+        'alex_call.json',
+        'ryan_ward.json'
+    }:
+        return os.path.join(DODGERS_DATA_DIR, filename)
     return os.path.join(MLB_DATA_DIR, filename)
 
 
@@ -143,6 +175,114 @@ PLAYERS = [
         'name': 'Isiah Kiner-Falefa',
         'sport': 'mlb',
         'file': player_file('mlb', 'isiah_kiner_falefa.json')
+    },
+    {
+        'id': 'daniel_schneemann',
+        'name': 'Daniel Schneemann',
+        'sport': 'mlb',
+        'file': player_file('mlb', 'daniel_schneemann.json')
+    },
+    {
+        'id': 'brayan_rocchio',
+        'name': 'Brayan Rocchio',
+        'sport': 'mlb',
+        'file': player_file('mlb', 'brayan_rocchio.json')
+    },
+    {
+        'id': 'jose_ramirez',
+        'name': 'José Ramírez',
+        'sport': 'mlb',
+        'file': player_file('mlb', 'jose_ramirez.json')
+    },
+    {
+        'id': 'chase_delauter',
+        'name': 'Chase DeLauter',
+        'sport': 'mlb',
+        'file': player_file('mlb', 'chase_delauter.json')
+    },
+    {
+        'id': 'kyle_manzardo',
+        'name': 'Kyle Manzardo',
+        'sport': 'mlb',
+        'file': player_file('mlb', 'kyle_manzardo.json')
+    },
+    {
+        'id': 'corey_seager',
+        'name': 'Corey Seager',
+        'sport': 'mlb',
+        'file': player_file('mlb', 'corey_seager.json')
+    },
+    {
+        'id': 'josh_jung',
+        'name': 'Josh Jung',
+        'sport': 'mlb',
+        'file': player_file('mlb', 'josh_jung.json')
+    },
+    {
+        'id': 'brandon_nimmo',
+        'name': 'Brandon Nimmo',
+        'sport': 'mlb',
+        'file': player_file('mlb', 'brandon_nimmo.json')
+    },
+    {
+        'id': 'joc_pederson',
+        'name': 'Joc Pederson',
+        'sport': 'mlb',
+        'file': player_file('mlb', 'joc_pederson.json')
+    },
+    {
+        'id': 'kyle_higashioka',
+        'name': 'Kyle Higashioka',
+        'sport': 'mlb',
+        'file': player_file('mlb', 'kyle_higashioka.json')
+    },
+    {
+        'id': 'wyatt_langford',
+        'name': 'Wyatt Langford',
+        'sport': 'mlb',
+        'file': player_file('mlb', 'wyatt_langford.json')
+    },
+    {
+        'id': 'shohei_ohtani',
+        'name': 'Shohei Ohtani',
+        'sport': 'mlb',
+        'file': player_file('mlb', 'shohei_ohtani.json')
+    },
+    {
+        'id': 'andy_pages',
+        'name': 'Andy Pages',
+        'sport': 'mlb',
+        'file': player_file('mlb', 'andy_pages.json')
+    },
+    {
+        'id': 'freddie_freeman',
+        'name': 'Freddie Freeman',
+        'sport': 'mlb',
+        'file': player_file('mlb', 'freddie_freeman.json')
+    },
+    {
+        'id': 'mookie_betts',
+        'name': 'Mookie Betts',
+        'sport': 'mlb',
+        'file': player_file('mlb', 'mookie_betts.json')
+    },
+    {
+        'id': 'max_muncy',
+        'name': 'Max Muncy',
+        'sport': 'mlb',
+        'file': player_file('mlb', 'max_muncy.json')
+    },
+    {
+        'id': 'alex_call',
+        'name': 'Alex Call',
+        'sport': 'mlb',
+        'file': player_file('mlb', 'alex_call.json')
+    },
+    {
+        'id': 'ryan_ward',
+        'name': 'Ryan Ward',
+        'sport': 'mlb',
+        'file': player_file('mlb', 'ryan_ward.json')
     },
     {
         'id': 'jalen_brunson',
@@ -281,6 +421,12 @@ def get_player_team_name(player):
     if player['sport'] == 'mlb':
         if os.path.normpath(player['file']).startswith(os.path.normpath(RED_SOX_DATA_DIR)):
             return 'Boston Red Sox'
+        if os.path.normpath(player['file']).startswith(os.path.normpath(GUARDIANS_DATA_DIR)):
+            return 'Cleveland Guardians'
+        if os.path.normpath(player['file']).startswith(os.path.normpath(RANGERS_DATA_DIR)):
+            return 'Texas Rangers'
+        if os.path.normpath(player['file']).startswith(os.path.normpath(DODGERS_DATA_DIR)):
+            return 'Los Angeles Dodgers'
         return 'New York Yankees'
     if os.path.normpath(player['file']).startswith(os.path.normpath(SPURS_DATA_DIR)):
         return 'San Antonio Spurs'
@@ -465,6 +611,9 @@ def run_task1():
             scripts = [
                 ("/opt/render/project/src/mlb/yankees/Yankees.py", "/opt/render/project/src/mlb/yankees/"),
                 ("/opt/render/project/src/mlb/red_sox/RedSox.py", "/opt/render/project/src/mlb/red_sox/"),
+                ("/opt/render/project/src/mlb/guardians/Guardians.py", "/opt/render/project/src/mlb/guardians/"),
+                ("/opt/render/project/src/mlb/rangers/Rangers.py", "/opt/render/project/src/mlb/rangers/"),
+                ("/opt/render/project/src/mlb/dodgers/Dodgers.py", "/opt/render/project/src/mlb/dodgers/"),
                 ("/opt/render/project/src/nba/knicks/Knicks.py", "/opt/render/project/src/nba/knicks/"),
                 ("/opt/render/project/src/nba/spurs/Spurs.py", "/opt/render/project/src/nba/spurs/")
                 
