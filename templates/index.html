@@ -761,9 +761,9 @@
             const playersForSport = allPlayers.filter(player => player.sport === currentSport);
             const teamsForPlayers = Array.from(new Set(playersForSport.map(p => p.team_abbr).filter(Boolean)));
             let teams = (teamsBySport[currentSport] || []).filter(t => teamsForPlayers.includes(t.abbreviation));
-            // Restrict visible teams per user request: MLB -> Yankees + Red Sox + Guardians + Rangers; NBA -> Knicks + Spurs
+            // Restrict visible teams per user request
                 if (currentSport === 'mlb') {
-                teams = teams.filter(t => ['NYY', 'BOS', 'CLE', 'TEX', 'LAD'].includes(t.abbreviation));
+                teams = teams.filter(t => ['NYY', 'BOS', 'CLE', 'TEX', 'LAD', 'CHC', 'LAA'].includes(t.abbreviation));
             } else if (currentSport === 'nba') {
                 teams = teams.filter(t => ['NY', 'SA'].includes(t.abbreviation));
             }
@@ -810,14 +810,15 @@
             const teamsForPlayers = Array.from(new Set(playersForSport.map(p => p.team_abbr).filter(Boolean)));
             let teams = (teamsBySport[currentSport] || []).filter(t => teamsForPlayers.includes(t.abbreviation));
             if (currentSport === 'mlb') {
-                teams = teams.filter(t => ['NYY', 'BOS', 'CLE', 'TEX', 'LAD'].includes(t.abbreviation));
+                teams = teams.filter(t => ['NYY', 'BOS', 'CLE', 'TEX', 'LAD', 'CHC', 'LAA'].includes(t.abbreviation));
             } else if (currentSport === 'nba') {
                 teams = teams.filter(t => ['NY', 'SA'].includes(t.abbreviation));
             }
             let html = '<option value="">Select Team</option>' + teams.map(t => `<option value="${t.abbreviation}">${t.abbreviation} - ${t.name}</option>`).join('');
             teamSelect.innerHTML = html || '<option value="">No teams</option>';
-            teamSelect.onchange = function() {
+            teamSelect.onchange = async function() {
                 populatePlayerSelectForTeam(this.value);
+                await loadPlayerDataAndUpdate();
             };
             // auto-select first team if none selected
             const first = teams[0]?.abbreviation || '';
@@ -1136,7 +1137,18 @@
             }
         }
 
+        function getLatestLoggedOpponentCode() {
+            const firstLoggedGame = allGames.find(game => getOpponentCode(game.OPP));
+            return firstLoggedGame ? getOpponentCode(firstLoggedGame.OPP) : '';
+        }
+
         async function autoSelectOpponent() {
+            const loggedOpponentCode = getLatestLoggedOpponentCode();
+            if (loggedOpponentCode) {
+                currentOpponent = loggedOpponentCode;
+                return;
+            }
+
             try {
                 const res = await fetch(`/api/next_game/${currentPlayerId}`);
                 const data = await res.json();
@@ -1174,7 +1186,13 @@
             if (currentOpponent && opps.includes(currentOpponent)) {
                 select.value = currentOpponent;
             } else {
-                currentOpponent = select.value;
+                const loggedOpponentCode = getLatestLoggedOpponentCode();
+                if (loggedOpponentCode && opps.includes(loggedOpponentCode)) {
+                    currentOpponent = loggedOpponentCode;
+                    select.value = loggedOpponentCode;
+                } else {
+                    currentOpponent = select.value;
+                }
             }
             select.onchange = function() {
                 currentOpponent = getOpponentCode(this.value);
