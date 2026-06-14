@@ -16,6 +16,8 @@ RED_SOX_DATA_DIR = os.path.join(BASE_DIR, 'mlb', 'red_sox')
 GUARDIANS_DATA_DIR = os.path.join(BASE_DIR, 'mlb', 'guardians')
 RANGERS_DATA_DIR = os.path.join(BASE_DIR, 'mlb', 'rangers')
 DODGERS_DATA_DIR = os.path.join(BASE_DIR, 'mlb', 'dodgers')
+CUBS_DATA_DIR = os.path.join(BASE_DIR, 'mlb', 'cubs')
+ANGELS_DATA_DIR = os.path.join(BASE_DIR, 'mlb', 'angels')
 NBA_DATA_DIR = os.path.join(BASE_DIR, 'nba', 'knicks')
 SPURS_DATA_DIR = os.path.join(BASE_DIR, 'nba', 'spurs')
 MLB_TEAMS_PATH = os.path.join(APP_DIR, 'mlb_teams.json')
@@ -26,6 +28,8 @@ BRUNSON_SCRIPT = os.path.join(APP_DIR, 'nba', 'knicks', 'JalenBrunson.py')
 SPURS_SCRIPT = os.path.join(APP_DIR, 'nba', 'spurs', 'Spurs.py')
 RANGERS_SCRIPT = os.path.join(APP_DIR, 'mlb', 'rangers', 'Rangers.py')
 DODGERS_SCRIPT = os.path.join(APP_DIR, 'mlb', 'dodgers', 'Dodgers.py')
+CUBS_SCRIPT = os.path.join(APP_DIR, 'mlb', 'cubs', 'Cubs.py')
+ANGELS_SCRIPT = os.path.join(APP_DIR, 'mlb', 'angels', 'Angels.py')
 RUN_TASK_LOCK = threading.Lock()
 ODDS_CACHE_LOCK = threading.Lock()
 ODDS_API_BASE_URL = 'https://api.the-odds-api.com/v4'
@@ -94,6 +98,22 @@ def player_file(sport, filename):
         'ryan_ward.json'
     }:
         return os.path.join(DODGERS_DATA_DIR, filename)
+    if filename in {
+        'michael_busch.json',
+        'pete_crow_armstrong.json',
+        'alex_bregman.json',
+        'ian_happ.json',
+        'carson_kelly.json'
+    }:
+        return os.path.join(CUBS_DATA_DIR, filename)
+    if filename in {
+        'zach_neto.json',
+        'mike_trout.json',
+        'jo_adell.json',
+        'oswald_peraza.json',
+        'logan_ohoppe.json'
+    }:
+        return os.path.join(ANGELS_DATA_DIR, filename)
     return os.path.join(MLB_DATA_DIR, filename)
 
 
@@ -285,6 +305,66 @@ PLAYERS = [
         'file': player_file('mlb', 'ryan_ward.json')
     },
     {
+        'id': 'michael_busch',
+        'name': 'Michael Busch',
+        'sport': 'mlb',
+        'file': player_file('mlb', 'michael_busch.json')
+    },
+    {
+        'id': 'pete_crow_armstrong',
+        'name': 'Pete Crow-Armstrong',
+        'sport': 'mlb',
+        'file': player_file('mlb', 'pete_crow_armstrong.json')
+    },
+    {
+        'id': 'alex_bregman',
+        'name': 'Alex Bregman',
+        'sport': 'mlb',
+        'file': player_file('mlb', 'alex_bregman.json')
+    },
+    {
+        'id': 'ian_happ',
+        'name': 'Ian Happ',
+        'sport': 'mlb',
+        'file': player_file('mlb', 'ian_happ.json')
+    },
+    {
+        'id': 'carson_kelly',
+        'name': 'Carson Kelly',
+        'sport': 'mlb',
+        'file': player_file('mlb', 'carson_kelly.json')
+    },
+    {
+        'id': 'zach_neto',
+        'name': 'Zach Neto',
+        'sport': 'mlb',
+        'file': player_file('mlb', 'zach_neto.json')
+    },
+    {
+        'id': 'mike_trout',
+        'name': 'Mike Trout',
+        'sport': 'mlb',
+        'file': player_file('mlb', 'mike_trout.json')
+    },
+    {
+        'id': 'jo_adell',
+        'name': 'Jo Adell',
+        'sport': 'mlb',
+        'file': player_file('mlb', 'jo_adell.json')
+    },
+    {
+        'id': 'oswald_peraza',
+        'name': 'Oswald Peraza',
+        'sport': 'mlb',
+        'file': player_file('mlb', 'oswald_peraza.json')
+    },
+    {
+        'id': 'logan_ohoppe',
+        'name': "Logan O'Hoppe",
+        'sport': 'mlb',
+        'file': player_file('mlb', 'logan_ohoppe.json')
+    },
+    {
         'id': 'jalen_brunson',
         'name': 'Jalen Brunson',
         'sport': 'nba',
@@ -427,6 +507,10 @@ def get_player_team_name(player):
             return 'Texas Rangers'
         if os.path.normpath(player['file']).startswith(os.path.normpath(DODGERS_DATA_DIR)):
             return 'Los Angeles Dodgers'
+        if os.path.normpath(player['file']).startswith(os.path.normpath(CUBS_DATA_DIR)):
+            return 'Chicago Cubs'
+        if os.path.normpath(player['file']).startswith(os.path.normpath(ANGELS_DATA_DIR)):
+            return 'Los Angeles Angels'
         return 'New York Yankees'
     if os.path.normpath(player['file']).startswith(os.path.normpath(SPURS_DATA_DIR)):
         return 'San Antonio Spurs'
@@ -614,6 +698,8 @@ def run_task1():
                 ("/opt/render/project/src/mlb/guardians/Guardians.py", "/opt/render/project/src/mlb/guardians/"),
                 ("/opt/render/project/src/mlb/rangers/Rangers.py", "/opt/render/project/src/mlb/rangers/"),
                 ("/opt/render/project/src/mlb/dodgers/Dodgers.py", "/opt/render/project/src/mlb/dodgers/"),
+                ("/opt/render/project/src/mlb/cubs/Cubs.py", "/opt/render/project/src/mlb/cubs/"),
+                ("/opt/render/project/src/mlb/angels/Angels.py", "/opt/render/project/src/mlb/angels/"),
                 ("/opt/render/project/src/nba/knicks/Knicks.py", "/opt/render/project/src/nba/knicks/"),
                 ("/opt/render/project/src/nba/spurs/Spurs.py", "/opt/render/project/src/nba/spurs/")
                 
