@@ -1275,7 +1275,11 @@
                 if (!res.ok || data.error || !data.line) {
                     statLineCache[getStatLineCacheKey(currentPlayerId, stat)] = null;
                     currentThresholdSourceStat = null;
-                    el.textContent = data.error || 'No line available for selected stat.';
+                    // Sanitize and avoid showing internal API errors (rate limits, API key leaks)
+                    const safeMsg = (res.status === 502 || res.status === 503 || (data && /odds api/i.test(data.error || '')))
+                        ? 'No line available for selected stat.'
+                        : (data.error || 'No line available for selected stat.');
+                    el.textContent = safeMsg;
                     renderAdvancedInsights();
                     return;
                 }
