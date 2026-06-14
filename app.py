@@ -684,7 +684,8 @@ def fetch_player_prop_lines(player_id, stat):
             'lines': lines
         }, 200
     except requests.RequestException as exc:
-        return {'error': f'Odds API request failed: {exc}'}, 502
+        # Hide internal error details (do not leak API key/rate-limit info to clients)
+        return {'error': 'Odds API request failed.'}, 502
 
 
 @app.route('/run-task1')
